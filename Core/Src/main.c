@@ -109,7 +109,6 @@ float linear_interpolation(lin_t *lin, int16_t x) {
  */
 int main(void) {
 	/* USER CODE BEGIN 1 */
-
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -133,11 +132,12 @@ int main(void) {
 	MX_USART1_UART_Init();
 	MX_I2C1_Init();
 	MX_TIM7_Init();
-	MX_TIM2_Init();
 	MX_TIM8_Init();
+	MX_TIM2_Init();
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim7);
-
+	HAL_TIM_Base_Start_IT(&htim8);
+	HAL_TIM_Base_Start_IT(&htim2);
 	lps22hh_Init();
 	hts221_Init();
 	// print that the initialization is done
@@ -148,9 +148,6 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-		// print the number in TIM2 and TIM8 on the same line
-		// printf("TIM2: %d, TIM8: %d\r\n", __HAL_TIM_GET_COUNTER(&htim2), __HAL_TIM_GET_COUNTER(&htim8));
-
 		if (start_measures == 1) {
 			printf("measures conversions started.\r\n");
 			// start the temperature conversion
@@ -202,23 +199,25 @@ int main(void) {
 		}
 
 		if (retrieve_wind_speed == 1) {
-			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
+			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
 			windspeed_kph = calculateWindSpeed(timer_counter);
 
 			printf("Wind speed [kph]: %f\r\n", windspeed_kph);
-			__HAL_TIM_SET_COUNTER(&htim8, 0);
+			__HAL_TIM_SET_COUNTER(&htim2, 0);
 
 			retrieve_wind_speed = 0;
+			windspeed_kph = 0;
 		}
 
 		if (retrieve_rainfall >= 5) {
-			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
+			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
 			rainfall_mm = calculateRainfall(timer_counter);
 
 			printf("Rainfall [mm]: %f\r\n", rainfall_mm);
-			__HAL_TIM_SET_COUNTER(&htim2, 0);
+			__HAL_TIM_SET_COUNTER(&htim8, 0);
 
 			retrieve_rainfall = 0;
+			rainfall_mm = 0;
 		}
 
 		/* USER CODE END WHILE */
