@@ -2,6 +2,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
@@ -30,12 +31,14 @@
 #endif /* __GNUC__ */
 
 #define SENSOR_BUS hi2c1
+#define ADC_BUF_LEN 4096
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 #define BOOT_TIME 5
 #define TX_BUF_DIM 1000
+uint16_t adc_buf[ADC_BUF_LEN];
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -59,6 +62,8 @@ volatile uint8_t tmp_sns_d_rdy = 0;
 volatile uint8_t prs_sns_d_rdy = 0;
 volatile uint8_t retrieve_wind_speed = 0;
 volatile uint8_t retrieve_rainfall = 0;
+volatile uint8_t retrieve_wind_dir = 0;
+volatile uint8_t adc_conversion_complete = 0;
 
 /* USER CODE END PV */
 
@@ -129,16 +134,17 @@ int main(void) {
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
-	MX_USART1_UART_Init();
-	MX_I2C1_Init();
 	MX_TIM7_Init();
 	MX_TIM8_Init();
 	MX_TIM2_Init();
+	MX_USART1_UART_Init();
+	MX_I2C1_Init();
+	MX_ADC1_Init();
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim7);
 	HAL_TIM_Base_Start_IT(&htim8);
 	HAL_TIM_Base_Start_IT(&htim2);
-	lps22hh_Init();
+	//lps22hh_Init();
 	hts221_Init();
 	// print that the initialization is done
 	printf("Init done\r\n");
@@ -148,6 +154,14 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
+
+		printf("%d\r\n", start_measures);
+		printf("%d\r\n", tmp_sns_d_rdy);
+		printf("%d\r\n", prs_sns_d_rdy);
+		printf("%d\r\n", retrieve_wind_speed);
+		printf("%d\r\n", retrieve_rainfall);
+		printf("%d\r\n", retrieve_wind_dir);
+
 		if (start_measures == 1) {
 			printf("measures conversions started.\r\n");
 			// start the temperature conversion
@@ -199,7 +213,7 @@ int main(void) {
 		}
 
 		if (retrieve_wind_speed == 1) {
-			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
+			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
 			windspeed_kph = calculateWindSpeed(timer_counter);
 
 			printf("Wind speed [kph]: %f\r\n", windspeed_kph);
@@ -210,7 +224,7 @@ int main(void) {
 		}
 
 		if (retrieve_rainfall >= 5) {
-			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
+			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
 			rainfall_mm = calculateRainfall(timer_counter);
 
 			printf("Rainfall [mm]: %f\r\n", rainfall_mm);
@@ -218,6 +232,15 @@ int main(void) {
 
 			retrieve_rainfall = 0;
 			rainfall_mm = 0;
+		}
+
+		if (retrieve_wind_dir == 1) {
+			uint16_t raw;
+			HAL_ADC_Start(&hadc1);
+			HAL_ADC_PollForConversion(&hadc1, 500);
+			raw = HAL_ADC_GetValue(&hadc1);
+			printf("Wind direction ADC value: %d\r\n", raw);
+			retrieve_wind_dir = 0;
 		}
 
 		/* USER CODE END WHILE */
@@ -415,6 +438,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		start_measures = 1;
 		retrieve_wind_speed = 1;
 		retrieve_rainfall++;
+		retrieve_wind_dir = 1;
 	}
 }
 
