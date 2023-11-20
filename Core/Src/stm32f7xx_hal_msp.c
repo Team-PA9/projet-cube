@@ -59,27 +59,26 @@
 
 /* USER CODE END 0 */
 /**
-  * Initializes the Global MSP.
-  */
-void HAL_MspInit(void)
-{
-  /* USER CODE BEGIN MspInit 0 */
+ * Initializes the Global MSP.
+ */
+void HAL_MspInit(void) {
+	/* USER CODE BEGIN MspInit 0 */
 
-  /* USER CODE END MspInit 0 */
+	/* USER CODE END MspInit 0 */
 
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_RCC_SYSCFG_CLK_ENABLE();
+	__HAL_RCC_PWR_CLK_ENABLE();
+	__HAL_RCC_SYSCFG_CLK_ENABLE();
 
-  /* System interrupt init*/
+	/* System interrupt init*/
 
-  /* Peripheral interrupt init */
-  /* PVD_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(PVD_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(PVD_IRQn);
+	/* Peripheral interrupt init */
+	/* PVD_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(PVD_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(PVD_IRQn);
 
-  /* USER CODE BEGIN MspInit 1 */
+	/* USER CODE BEGIN MspInit 1 */
 
-  /* USER CODE END MspInit 1 */
+	/* USER CODE END MspInit 1 */
 }
 
 /* USER CODE BEGIN 1 */

@@ -56,7 +56,7 @@ static float rainfall_mm;
 
 static uint8_t whoamI, rst;
 static uint8_t tx_buffer[TX_BUF_DIM];
-uint16_t adc_buf[ADC_BUF_LEN];
+static uint16_t adc_buf[ADC_BUF_LEN];
 
 volatile uint8_t start_measures = 0;
 volatile uint8_t tmp_sns_d_rdy = 0;
@@ -81,9 +81,9 @@ static int32_t hts221_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t le
 static void tx_com(uint8_t *tx_buffer, uint16_t len);
 static void platform_delay(uint32_t ms);
 
-float calculateWindSpeed(uint16_t timer_counter);
-float calculateRainfall(uint16_t timer_counter);
-const char* determineDirection(uint16_t adc_value);
+static float calculateWindSpeed(uint16_t timer_counter);
+static float calculateRainfall(uint16_t timer_counter);
+static const char* determineDirection(uint16_t adc_value);
 
 static stmdev_ctx_t dev_ctx_lps22hh;
 static stmdev_ctx_t dev_ctx_hts221;
@@ -143,8 +143,8 @@ int main(void) {
 	MX_TIM8_Init();
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim7);
-	HAL_TIM_Base_Start_IT(&htim8);
-	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_Base_Start(&htim8);
+	HAL_TIM_Base_Start(&htim2);
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adc_buf, ADC_BUF_LEN);
 
 	lps22hh_Init();
@@ -202,7 +202,7 @@ int main(void) {
 			memset(&data_raw_pressure, 0x00, sizeof(uint32_t));
 			lps22hh_pressure_raw_get(&dev_ctx_lps22hh, &data_raw_pressure);
 			pressure_hPa = lps22hh_from_lsb_to_hpa(data_raw_pressure);
-			sprintf((char*) tx_buffer, "pressure [hPa]:%6.2f\r\n", pressure_hPa);
+			sprintf((char*) tx_buffer, "Pressure [hPa]:%6.2f\r\n", pressure_hPa);
 			tx_com(tx_buffer, strlen((char const*) tx_buffer));
 
 			prs_sns_d_rdy = 0;
@@ -212,27 +212,25 @@ int main(void) {
 			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
 			windspeed_kph = calculateWindSpeed(timer_counter);
 
-			printf("Wind speed [kph]: %f\r\n", windspeed_kph);
-			__HAL_TIM_SET_COUNTER(&htim2, 0);
+			printf("Wind speed [kph]:%f\r\n", windspeed_kph);
+			__HAL_TIM_SET_COUNTER(&htim8, 0);
 
 			retrieve_wind_speed = 0;
-			windspeed_kph = 0;
 		}
 
 		if (retrieve_rainfall >= 5) {
 			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
 			rainfall_mm = calculateRainfall(timer_counter);
 
-			printf("Rainfall [mm]: %f\r\n", rainfall_mm);
-			__HAL_TIM_SET_COUNTER(&htim8, 0);
+			printf("Rainfall [mm]:%f\r\n", rainfall_mm);
+			__HAL_TIM_SET_COUNTER(&htim2, 0);
 
 			retrieve_rainfall = 0;
-			rainfall_mm = 0;
 		}
 
 		if (retrieve_wind_dir == 1) {
-			const char* direction = determineDirection(adc_buf[0]);
-			printf("ADC Value: %d, Direction: %s\r\n", (int) adc_buf[0], direction);
+			const char *direction = determineDirection(adc_buf[0]);
+			printf("Direction: %s\r\n", direction);
 
 			retrieve_wind_dir = 0;
 		}
@@ -436,7 +434,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-float calculateWindSpeed(uint16_t switchClosures) {
+static float calculateWindSpeed(uint16_t switchClosures) {
 	// Conversion factor: 1.492 mph corresponds to 1 switch closure per second
 	float countsPerSecond = (float) switchClosures / 60.0;
 	// Conversion factor: 1 mph = 1.60934 kph
@@ -445,7 +443,7 @@ float calculateWindSpeed(uint16_t switchClosures) {
 	return windSpeedKph;
 }
 
-float calculateRainfall(uint16_t switchClosures) {
+static float calculateRainfall(uint16_t switchClosures) {
 	// Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
 	float rainInches = (float) switchClosures * 0.011;
 	// Conversion factor: 1 inch = 25.4 mm
@@ -454,24 +452,19 @@ float calculateRainfall(uint16_t switchClosures) {
 	return rainMillimeters;
 }
 
-const char* determineDirection(uint16_t adcValue) {
-    // Calculate the sector size based on the number of directions
-    const int numDirections = 16;
-    const int sectorSize = 4096 / numDirections;
+static const char* determineDirection(uint16_t adcValue) {
+	// Calculate the sector size based on the number of directions
+	const int numDirections = 16;
+	const int sectorSize = 4096 / numDirections;
 
-    // Calculate the sector index based on the ADC value
-    int sectorIndex = (adcValue + sectorSize / 2) / sectorSize;
+	// Calculate the sector index based on the ADC value
+	int sectorIndex = (adcValue + sectorSize / 2) / sectorSize;
 
-    // Define the compass directions
-    const char* compassDirections[] = {
-        "N", "NNE", "NE", "ENE",
-        "E", "ESE", "SE", "SSE",
-        "S", "SSO", "SO", "OSO",
-        "O", "ONO", "NO", "NNO"
-    };
+	// Define the compass directions
+	const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
 
-    // Map the sector index to the corresponding direction
-    return compassDirections[sectorIndex % numDirections];
+	// Map the sector index to the corresponding direction
+	return compassDirections[sectorIndex % numDirections];
 }
 /* USER CODE END 4 */
 
