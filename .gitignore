@@ -1,3 +1,5 @@
 .DS_Store
 Build/
-build/
+Debug/
+.osx.project
+.settings/
