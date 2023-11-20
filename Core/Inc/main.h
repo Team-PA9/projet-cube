@@ -63,6 +63,7 @@ void Error_Handler(void);
 #define ETR_WIND_GPIO_Port GPIOI
 #define IRQ_PRESS_Pin GPIO_PIN_2
 #define IRQ_PRESS_GPIO_Port GPIOI
+#define IRQ_PRESS_EXTI_IRQn EXTI2_IRQn
 #define IRQ_TEMP_Pin GPIO_PIN_6
 #define IRQ_TEMP_GPIO_Port GPIOG
 #define IRQ_TEMP_EXTI_IRQn EXTI9_5_IRQn

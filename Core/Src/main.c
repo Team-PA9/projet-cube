@@ -3,6 +3,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "dma.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
@@ -31,14 +32,13 @@
 #endif /* __GNUC__ */
 
 #define SENSOR_BUS hi2c1
-#define ADC_BUF_LEN 4096
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 #define BOOT_TIME 5
 #define TX_BUF_DIM 1000
-uint16_t adc_buf[ADC_BUF_LEN];
+#define ADC_BUF_LEN 1
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -51,11 +51,12 @@ static int16_t data_raw_temperature;
 static float pressure_hPa;
 static float humidity_perc;
 static float temperature_degC;
-float windspeed_kph;
-float rainfall_mm;
+static float windspeed_kph;
+static float rainfall_mm;
 
 static uint8_t whoamI, rst;
 static uint8_t tx_buffer[TX_BUF_DIM];
+uint16_t adc_buf[ADC_BUF_LEN];
 
 volatile uint8_t start_measures = 0;
 volatile uint8_t tmp_sns_d_rdy = 0;
@@ -63,8 +64,6 @@ volatile uint8_t prs_sns_d_rdy = 0;
 volatile uint8_t retrieve_wind_speed = 0;
 volatile uint8_t retrieve_rainfall = 0;
 volatile uint8_t retrieve_wind_dir = 0;
-volatile uint8_t adc_conversion_complete = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,6 +83,7 @@ static void platform_delay(uint32_t ms);
 
 float calculateWindSpeed(uint16_t timer_counter);
 float calculateRainfall(uint16_t timer_counter);
+const char* determineDirection(uint16_t adc_value);
 
 static stmdev_ctx_t dev_ctx_lps22hh;
 static stmdev_ctx_t dev_ctx_hts221;
@@ -134,18 +134,22 @@ int main(void) {
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
-	MX_TIM7_Init();
-	MX_TIM8_Init();
+	MX_DMA_Init();
 	MX_TIM2_Init();
 	MX_USART1_UART_Init();
 	MX_I2C1_Init();
+	MX_TIM7_Init();
 	MX_ADC1_Init();
+	MX_TIM8_Init();
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim7);
 	HAL_TIM_Base_Start_IT(&htim8);
 	HAL_TIM_Base_Start_IT(&htim2);
-	//lps22hh_Init();
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adc_buf, ADC_BUF_LEN);
+
+	lps22hh_Init();
 	hts221_Init();
+
 	// print that the initialization is done
 	printf("Init done\r\n");
 
@@ -154,16 +158,8 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-
-		printf("%d\r\n", start_measures);
-		printf("%d\r\n", tmp_sns_d_rdy);
-		printf("%d\r\n", prs_sns_d_rdy);
-		printf("%d\r\n", retrieve_wind_speed);
-		printf("%d\r\n", retrieve_rainfall);
-		printf("%d\r\n", retrieve_wind_dir);
-
 		if (start_measures == 1) {
-			printf("measures conversions started.\r\n");
+			printf("Measures conversions started\r\n");
 			// start the temperature conversion
 			hts221_one_shoot_trigger_set(&dev_ctx_hts221, PROPERTY_ENABLE);
 
@@ -235,11 +231,9 @@ int main(void) {
 		}
 
 		if (retrieve_wind_dir == 1) {
-			uint16_t raw;
-			HAL_ADC_Start(&hadc1);
-			HAL_ADC_PollForConversion(&hadc1, 500);
-			raw = HAL_ADC_GetValue(&hadc1);
-			printf("Wind direction ADC value: %d\r\n", raw);
+			const char* direction = determineDirection(adc_buf[0]);
+			printf("ADC Value: %d, Direction: %s\r\n", (int) adc_buf[0], direction);
+
 			retrieve_wind_dir = 0;
 		}
 
@@ -422,19 +416,19 @@ static void platform_delay(uint32_t ms) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == IRQ_TEMP_Pin) {
-		printf("temp sensor OK\r\n");
+		printf("Temp sensor OK\r\n");
 		tmp_sns_d_rdy = 1;
 	}
 
 	if (GPIO_Pin == IRQ_PRESS_Pin) {
-		printf("pressure sensor OK\r\n");
+		printf("Pressure sensor OK\r\n");
 		prs_sns_d_rdy = 1;
 	}
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim7) {
-		printf("timer done\r\n");
+		printf("Timer done\r\n");
 		start_measures = 1;
 		retrieve_wind_speed = 1;
 		retrieve_rainfall++;
@@ -460,6 +454,25 @@ float calculateRainfall(uint16_t switchClosures) {
 	return rainMillimeters;
 }
 
+const char* determineDirection(uint16_t adcValue) {
+    // Calculate the sector size based on the number of directions
+    const int numDirections = 16;
+    const int sectorSize = 4096 / numDirections;
+
+    // Calculate the sector index based on the ADC value
+    int sectorIndex = (adcValue + sectorSize / 2) / sectorSize;
+
+    // Define the compass directions
+    const char* compassDirections[] = {
+        "N", "NNE", "NE", "ENE",
+        "E", "ESE", "SE", "SSE",
+        "S", "SSO", "SO", "OSO",
+        "O", "ONO", "NO", "NNO"
+    };
+
+    // Map the sector index to the corresponding direction
+    return compassDirections[sectorIndex % numDirections];
+}
 /* USER CODE END 4 */
 
 /**
