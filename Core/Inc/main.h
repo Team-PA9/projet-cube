@@ -66,9 +66,26 @@ void Error_Handler(void);
 #define IRQ_PRESS_EXTI_IRQn EXTI2_IRQn
 #define uSD_Detect_Pin GPIO_PIN_13
 #define uSD_Detect_GPIO_Port GPIOC
+#define IRQ_TS_Pin GPIO_PIN_13
+#define IRQ_TS_GPIO_Port GPIOI
+#define IRQ_TS_EXTI_IRQn EXTI15_10_IRQn
 #define IRQ_TEMP_Pin GPIO_PIN_6
 #define IRQ_TEMP_GPIO_Port GPIOG
 #define IRQ_TEMP_EXTI_IRQn EXTI9_5_IRQn
+#define BTN2_Pin GPIO_PIN_9
+#define BTN2_GPIO_Port GPIOF
+#define BTN2_EXTI_IRQn EXTI9_5_IRQn
+#define BTN1_Pin GPIO_PIN_8
+#define BTN1_GPIO_Port GPIOF
+#define BTN1_EXTI_IRQn EXTI9_5_IRQn
+#define WIND_SPEED_Pin GPIO_PIN_0
+#define WIND_SPEED_GPIO_Port GPIOA
+#define BLED_Pin GPIO_PIN_9
+#define BLED_GPIO_Port GPIOH
+#define RLED_Pin GPIO_PIN_11
+#define RLED_GPIO_Port GPIOH
+#define GLED_Pin GPIO_PIN_10
+#define GLED_GPIO_Port GPIOH
 
 /* USER CODE BEGIN Private defines */
 

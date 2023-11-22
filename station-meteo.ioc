@@ -378,8 +378,8 @@ ProjectManager.MainLocation=Core/Src
 ProjectManager.NoMain=false
 ProjectManager.PreviousToolchain=STM32CubeIDE
 ProjectManager.ProjectBuild=false
-ProjectManager.ProjectFileName=projet-cube.ioc
-ProjectManager.ProjectName=projet-cube
+ProjectManager.ProjectFileName=station-meteo.ioc
+ProjectManager.ProjectName=station-meteo
 ProjectManager.ProjectStructure=
 ProjectManager.RegisterCallBack=
 ProjectManager.StackSize=0x800
@@ -555,4 +555,4 @@ VP_TIM7_VS_ClockSourceINT.Mode=Enable_Timer
 VP_TIM7_VS_ClockSourceINT.Signal=TIM7_VS_ClockSourceINT
 board=STM32F746G-DISCO
 boardIOC=true
-
+isbadioc=false
