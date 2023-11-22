@@ -46,7 +46,8 @@
  * @retval       interface status (MANDATORY: return 0 -> no Error)
  *
  */
-int32_t __weak lps22hh_read_reg(stmdev_ctx_t *ctx, uint8_t reg, uint8_t *data, uint16_t len) {
+int32_t __weak lps22hh_read_reg(stmdev_ctx_t *ctx, uint8_t reg, uint8_t *data,
+		uint16_t len) {
 	int32_t ret;
 
 	ret = ctx->read_reg(ctx->handle, reg, data, len);
@@ -64,7 +65,8 @@ int32_t __weak lps22hh_read_reg(stmdev_ctx_t *ctx, uint8_t reg, uint8_t *data, u
  * @retval       interface status (MANDATORY: return 0 -> no Error)
  *
  */
-int32_t __weak lps22hh_write_reg(stmdev_ctx_t *ctx, uint8_t reg, uint8_t *data, uint16_t len) {
+int32_t __weak lps22hh_write_reg(stmdev_ctx_t *ctx, uint8_t reg, uint8_t *data,
+		uint16_t len) {
 	int32_t ret;
 
 	ret = ctx->write_reg(ctx->handle, reg, data, len);
@@ -320,18 +322,21 @@ int32_t lps22hh_data_rate_set(stmdev_ctx_t *ctx, lps22hh_odr_t val) {
 	ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG1, (uint8_t*) &ctrl_reg1, 1);
 
 	if (ret == 0) {
-		ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2, 1);
+		ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2,
+				1);
 	}
 
 	if (ret == 0) {
 		ctrl_reg1.odr = (uint8_t) val & 0x07U;
-		ret = lps22hh_write_reg(ctx, LPS22HH_CTRL_REG1, (uint8_t*) &ctrl_reg1, 1);
+		ret = lps22hh_write_reg(ctx, LPS22HH_CTRL_REG1, (uint8_t*) &ctrl_reg1,
+				1);
 	}
 
 	if (ret == 0) {
 		ctrl_reg2.low_noise_en = ((uint8_t) val & 0x10U) >> 4;
 		ctrl_reg2.one_shot = ((uint8_t) val & 0x08U) >> 3;
-		ret = lps22hh_write_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2, 1);
+		ret = lps22hh_write_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2,
+				1);
 	}
 
 	return ret;
@@ -353,13 +358,16 @@ int32_t lps22hh_data_rate_get(stmdev_ctx_t *ctx, lps22hh_odr_t *val) {
 	ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG1, (uint8_t*) &ctrl_reg1, 1);
 
 	if (ret == 0) {
-		ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2, 1);
+		ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2,
+				1);
 	}
 
 	if (ret == 0) {
-		ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2, 1);
+		ret = lps22hh_read_reg(ctx, LPS22HH_CTRL_REG2, (uint8_t*) &ctrl_reg2,
+				1);
 
-		switch (((ctrl_reg2.low_noise_en << 4) + (ctrl_reg2.one_shot << 3) + ctrl_reg1.odr)) {
+		switch (((ctrl_reg2.low_noise_en << 4) + (ctrl_reg2.one_shot << 3)
+				+ ctrl_reg1.odr)) {
 		case LPS22HH_POWER_DOWN:
 			*val = LPS22HH_POWER_DOWN;
 			break;
@@ -522,14 +530,17 @@ int32_t lps22hh_pressure_offset_get(stmdev_ctx_t *ctx, int16_t *val) {
 int32_t lps22hh_all_sources_get(stmdev_ctx_t *ctx, lps22hh_all_sources_t *val) {
 	int32_t ret;
 
-	ret = lps22hh_read_reg(ctx, LPS22HH_INT_SOURCE, (uint8_t*) &(val->int_source), 1);
+	ret = lps22hh_read_reg(ctx, LPS22HH_INT_SOURCE,
+			(uint8_t*) &(val->int_source), 1);
 
 	if (ret == 0) {
-		ret = lps22hh_read_reg(ctx, LPS22HH_FIFO_STATUS2, (uint8_t*) &(val->fifo_status2), 1);
+		ret = lps22hh_read_reg(ctx, LPS22HH_FIFO_STATUS2,
+				(uint8_t*) &(val->fifo_status2), 1);
 	}
 
 	if (ret == 0) {
-		ret = lps22hh_read_reg(ctx, LPS22HH_STATUS, (uint8_t*) &(val->status), 1);
+		ret = lps22hh_read_reg(ctx, LPS22HH_STATUS, (uint8_t*) &(val->status),
+				1);
 	}
 
 	return ret;
@@ -1368,7 +1379,8 @@ int32_t lps22hh_pin_polarity_get(stmdev_ctx_t *ctx, lps22hh_int_h_l_t *val) {
  * @retval       interface status (MANDATORY: return 0 -> no Error)
  *
  */
-int32_t lps22hh_pin_int_route_set(stmdev_ctx_t *ctx, lps22hh_pin_int_route_t *val) {
+int32_t lps22hh_pin_int_route_set(stmdev_ctx_t *ctx,
+		lps22hh_pin_int_route_t *val) {
 	lps22hh_ctrl_reg3_t ctrl_reg3;
 	int32_t ret;
 
@@ -1379,7 +1391,8 @@ int32_t lps22hh_pin_int_route_set(stmdev_ctx_t *ctx, lps22hh_pin_int_route_t *va
 		ctrl_reg3.int_f_ovr = val->fifo_ovr;
 		ctrl_reg3.int_f_full = val->fifo_full;
 
-		ret = lps22hh_write_reg(ctx, LPS22HH_CTRL_REG3, (uint8_t*) &ctrl_reg3, 1);
+		ret = lps22hh_write_reg(ctx, LPS22HH_CTRL_REG3, (uint8_t*) &ctrl_reg3,
+				1);
 	}
 	return ret;
 }
@@ -1392,7 +1405,8 @@ int32_t lps22hh_pin_int_route_set(stmdev_ctx_t *ctx, lps22hh_pin_int_route_t *va
  * @retval       interface status (MANDATORY: return 0 -> no Error)
  *
  */
-int32_t lps22hh_pin_int_route_get(stmdev_ctx_t *ctx, lps22hh_pin_int_route_t *val) {
+int32_t lps22hh_pin_int_route_get(stmdev_ctx_t *ctx,
+		lps22hh_pin_int_route_t *val) {
 	lps22hh_ctrl_reg3_t ctrl_reg3;
 	int32_t ret;
 
