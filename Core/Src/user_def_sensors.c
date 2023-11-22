@@ -8,13 +8,11 @@
 #include "lps22hh_reg.h"
 #include "user_def_sensors.h"
 
-
 /* SENSORS define ------------------------------------------------------------*/
 #define SENSOR_BUS hi2c1
 #define BOOT_TIME 5
 #define TX_BUF_DIM 1000
 #define ADC_BUF_LEN 1
-
 
 /* SENSORS variables ---------------------------------------------------------*/
 static uint8_t whoamI, rst;
@@ -35,7 +33,6 @@ static float temperature_degC;
 static float pressure_hPa;
 static float windspeed_kph;
 static float rainfall_mm;
-
 
 /* SENSORS functions ---------------------------------------------------------*/
 //SENSORS GEN
@@ -112,8 +109,7 @@ int32_t hts221_write(void *handle, uint8_t reg, const uint8_t *bufp,
 	return 0;
 }
 
-int32_t hts221_read(void *handle, uint8_t reg, uint8_t *bufp,
-		uint16_t len) {
+int32_t hts221_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len) {
 	/* Read multiple command */
 	reg |= 0x80;
 	HAL_I2C_Mem_Read(handle, HTS221_I2C_ADDRESS, reg, I2C_MEMADD_SIZE_8BIT,
@@ -121,7 +117,7 @@ int32_t hts221_read(void *handle, uint8_t reg, uint8_t *bufp,
 	return 0;
 }
 
-void SENSOR_hts221_Read_Data(void){
+void SENSOR_hts221_Read_Data(void) {
 	/* Read humidity data */
 	memset(&data_raw_humidity, 0x00, sizeof(int16_t));
 	hts221_humidity_raw_get(&dev_ctx_hts221, &data_raw_humidity);
@@ -133,15 +129,16 @@ void SENSOR_hts221_Read_Data(void){
 	if (humidity_perc > 100) {
 		humidity_perc = 100;
 	}
-	sprintf((char*)tx_buffer, "Humidity [%%]:%3.2f\r\n", humidity_perc);
-	tx_com(tx_buffer, strlen((char const*)tx_buffer));
+	sprintf((char*) tx_buffer, "Humidity [%%]: %3.2f\r\n", humidity_perc);
+	tx_com(tx_buffer, strlen((char const*) tx_buffer));
 
 	/* Read temperature data */
 	memset(&data_raw_temperature, 0x00, sizeof(int16_t));
 	hts221_temperature_raw_get(&dev_ctx_hts221, &data_raw_temperature);
 	temperature_degC = linear_interpolation(&lin_temp, data_raw_temperature);
-	sprintf((char*)tx_buffer, "Temperature [degC]:%6.2f\r\n", temperature_degC);
-	tx_com(tx_buffer, strlen((char const*)tx_buffer));
+	sprintf((char*) tx_buffer, "Temperature [degC]: %6.2f\r\n",
+			temperature_degC);
+	tx_com(tx_buffer, strlen((char const*) tx_buffer));
 }
 
 //SENSOR lps22hh
@@ -195,27 +192,26 @@ int32_t lps22hh_write(void *handle, uint8_t reg, const uint8_t *bufp,
 	return 0;
 }
 
-int32_t lps22hh_read(void *handle, uint8_t reg, uint8_t *bufp,
-		uint16_t len) {
+int32_t lps22hh_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len) {
 	HAL_I2C_Mem_Read(handle, LPS22HH_I2C_ADD_H, reg, I2C_MEMADD_SIZE_8BIT, bufp,
 			len, 1000);
 	return 0;
 }
 
-void SENSOR_lps22hh_Read_Data(void){
+void SENSOR_lps22hh_Read_Data(void) {
 	memset(&data_raw_pressure, 0x00, sizeof(uint32_t));
 	lps22hh_pressure_raw_get(&dev_ctx_lps22hh, &data_raw_pressure);
 	pressure_hPa = lps22hh_from_lsb_to_hpa(data_raw_pressure);
-	sprintf((char*)tx_buffer, "Pressure [hPa]:%6.2f\r\n", pressure_hPa);
-	tx_com(tx_buffer, strlen((char const*)tx_buffer));
+	sprintf((char*) tx_buffer, "Pressure [hPa]: %6.2f\r\n", pressure_hPa);
+	tx_com(tx_buffer, strlen((char const*) tx_buffer));
 }
 
 //SENSOR wind speed
-void SENSOR_WindSpeed_Read_Data(void){
+void SENSOR_WindSpeed_Read_Data(void) {
 	uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
 	windspeed_kph = calculateWindSpeed(timer_counter);
 
-	printf("Wind Speed [kph]:%f\r\n", windspeed_kph);
+	printf("Wind Speed [kph]: %f\r\n", windspeed_kph);
 	__HAL_TIM_SET_COUNTER(&htim8, 0);
 }
 
@@ -229,7 +225,7 @@ float calculateWindSpeed(uint16_t switchClosures) {
 }
 
 //SENSOR wind direction
-void SENSOR_WindDir_Read_Data(void){
+void SENSOR_WindDir_Read_Data(void) {
 	const char *direction = determineDirection(adc_buf[0]);
 	printf("Wind Direction: %s\r\n", direction);
 }
@@ -251,11 +247,11 @@ const char* determineDirection(uint16_t adcValue) {
 }
 
 //SENSOR rainfall
-void SENSOR_Rain_Read_Data(void){
+void SENSOR_Rain_Read_Data(void) {
 	uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
 	rainfall_mm = calculateRainfall(timer_counter);
 
-	printf("Rainfall [mm]:%f\r\n", rainfall_mm);
+	printf("Rainfall [mm]: %f\r\n", rainfall_mm);
 	__HAL_TIM_SET_COUNTER(&htim2, 0);
 }
 

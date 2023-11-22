@@ -59,9 +59,10 @@
 
 /* USER CODE BEGIN PV */
 //GEN Variables
-volatile uint8_t cpt_tim7 = 0;
+volatile uint8_t IRQs = 0;
 
 //SENSORS Variables
+volatile uint8_t cpt_measures = 0;
 volatile uint8_t start_measures = 0;
 volatile uint8_t tmp_sns_d_rdy = 0;
 volatile uint8_t prs_sns_d_rdy = 0;
@@ -71,12 +72,12 @@ volatile uint8_t retrieve_wind_dir = 0;
 static uint16_t adc_buf[ADC_BUF_LEN]; //Define twice, "main"+"user_def_sensors".
 
 //SCREEN Variables
-uint8_t IRQ_TS = 0;
+volatile uint8_t cpt_inactivity = 0;
+volatile uint8_t SCREEN_State = 0;
+volatile uint8_t IRQ_BTN2 = 0;
+volatile uint8_t IRQ_TS = 0;
 TS_StateTypeDef TS_State;
 uint16_t x, y;
-
-//SDCARD Variables
-volatile uint8_t Flag_IRQ_Btn = 0;
 
 /* USER CODE END PV */
 
@@ -131,6 +132,7 @@ int main(void) {
 	MX_LTDC_Init();
 	MX_FATFS_Init();
 	/* USER CODE BEGIN 2 */
+	//STEP 0 : Initialization
 	printf("Initialization started : \r\n");
 
 	//GEN PROJECT TIMER Initialization
@@ -155,6 +157,7 @@ int main(void) {
 	HAL_GPIO_WritePin(GLED_GPIO_Port, GLED_Pin, 1);
 	HAL_GPIO_WritePin(RLED_GPIO_Port, RLED_Pin, 0);
 	HAL_GPIO_WritePin(BLED_GPIO_Port, BLED_Pin, 0);
+	SCREEN_State = 1;
 	printf("Done. \r\n");
 
 	printf("\n - Touch Screen \r\n");
@@ -168,7 +171,7 @@ int main(void) {
 
 	//SDCARD Initialization
 	printf("\n - SDCard \r\n");
-	SDCARD_Init();
+	//SDCARD_Init(); //Comment to test without SDCard insert.
 	printf("Done. \r\n");
 
 	printf("\n Initialization completed. \r\n");
@@ -178,62 +181,97 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
+		//STEP 1 : Waiting for IRQs
 
-		//SENSORS
-		if (start_measures == 1) {
-			printf("Measures conversions started\r\n");
-			SENSORS_Start_Conversion();
-			start_measures = 0;
-		}
-		if (tmp_sns_d_rdy == 1) {
-			SENSOR_hts221_Read_Data();
-			tmp_sns_d_rdy = 0;
-		}
-		if (prs_sns_d_rdy == 1) {
-			SENSOR_lps22hh_Read_Data();
-			prs_sns_d_rdy = 0;
-		}
-		if (retrieve_wind_speed == 1) {
-			SENSOR_WindSpeed_Read_Data();
-			retrieve_wind_speed = 0;
-		}
-		if (retrieve_wind_dir == 1) {
-			SENSOR_WindDir_Read_Data();
-			retrieve_wind_dir = 0;
-		}
-		if (retrieve_rainfall == 1) {
-			SENSOR_Rain_Read_Data();
-			retrieve_rainfall = 0;
+		if (IRQs == 1) {
+			//STEP 2 : IRQ Measures
+			if (cpt_measures % 2 == 0) {
+				if (start_measures == 1) {
+					printf("\n - Measures conversions started\r\n");
+					SENSORS_Start_Conversion();
+					start_measures = 0;
+				}
+				//Get & Print a measure from every sensors
+				if (tmp_sns_d_rdy == 1) {
+					printf("Temperature sensor OK\r\n");
+					SENSOR_hts221_Read_Data();
+					tmp_sns_d_rdy = 0;
+				}
+				if (prs_sns_d_rdy == 1) {
+					printf("Pressure sensor OK\r\n");
+					SENSOR_lps22hh_Read_Data();
+					prs_sns_d_rdy = 0;
+				}
+				if (retrieve_wind_speed == 1) {
+					SENSOR_WindSpeed_Read_Data();
+					retrieve_wind_speed = 0;
+				}
+				if (retrieve_wind_dir == 1) {
+					SENSOR_WindDir_Read_Data();
+					retrieve_wind_dir = 0;
+				}
+				if (retrieve_rainfall == 1) {
+					SENSOR_Rain_Read_Data();
+					cpt_measures = 0;
+					retrieve_rainfall = 0;
+				}
+
+				// Add every measure from a sensor to the correspondent array.
+				/* Function adding value to array -- TO DO INSIDE .h.c of SDCard --
+				 */
+
+				//Screen Management & Actualization
+				/* Need to separate SCREEN_Actualization into SwCa of Pages and
+				 * Measures actualizations on the selected screen.
+				 * -- TO DO INSIDE .h.c of Screen --
+				 */
+				SCREEN_Actualization();
+
+				//Save every last measure from a sensor in SDCard.
+				//SDCARD_Actualization(); //Comment to test without SDCard insert.
+			}
+
+			//STEP 3 : IRQ Screen triggered
+			if (SCREEN_State == 1) {
+				if (IRQ_TS == 1) {
+					printf("\n - TouchScreen Triggered \r\n");
+					SCREEN_Actualization();
+					IRQ_TS = 0;
+				} else if (cpt_inactivity >= 3) {
+					printf("Screen OFF \r\n");
+					BSP_LCD_DisplayOff();
+					HAL_GPIO_WritePin(GLED_GPIO_Port, GLED_Pin, 0);
+					HAL_GPIO_WritePin(RLED_GPIO_Port, RLED_Pin, 1);
+					cpt_inactivity = 0;
+					SCREEN_State = 0;
+				}
+			} else if (SCREEN_State == 0) {
+				cpt_inactivity = 0;
+				if ((IRQ_BTN2 == 1) || (IRQ_TS == 1)) {
+					if (IRQ_BTN2 == 1) {
+						printf("\n - Button Triggered \r\n");
+					} else {
+						printf("\n - TouchScreen Triggered \r\n");
+					}
+					printf("Screen ON \r\n");
+					BSP_LCD_DisplayOn();
+					HAL_GPIO_WritePin(GLED_GPIO_Port, GLED_Pin, 1);
+					HAL_GPIO_WritePin(RLED_GPIO_Port, RLED_Pin, 0);
+					SCREEN_Actualization();
+					IRQ_BTN2 = 0;
+					IRQ_TS = 0;
+					SCREEN_State = 1;
+				}
+			}
+
+			IRQs = 0;
 		}
 
-		// SCREEN
-		if (IRQ_TS == 1) {
-			SCREEN_Actualization();
-			IRQ_TS = 0;
+		//STEP 10 : µP Sleep
+		else {
+			HAL_SuspendTick();
+			HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 		}
-
-		//SDCARD
-		if (Flag_IRQ_Btn == 1) {
-			SDCARD_Actualization();
-			Flag_IRQ_Btn = 0;
-		}
-
-
-/*STILL TO ORGANIZE ----------------------------------------------------------*/
-		//SDCARD Test
-//		int random[10] = {48,49,50,51,52,53,54,55,56,57};
-//		for (int i = 0; i < 10; i++){
-//			char *value = random[i];
-//			log_temperature[i] = *value;
-//		}
-
-		//µP Sleep
-//		else {
-//			HAL_SuspendTick();
-//			HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-//		}
-/*---------------------------------------------------------- STILL TO ORGANIZE*/
-
 	}
 	/* USER CODE END WHILE */
 
@@ -300,38 +338,44 @@ PUTCHAR_PROTOTYPE {
 
 //HAL TIM PeriodElapsed Callback
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	HAL_ResumeTick();
+	IRQs = 1;
 	if (htim == &htim7) {
-		printf("Timer 7 Triggered \r\n");
-		cpt_tim7++;
-		if (cpt_tim7%2 == 0){
+		printf("\n - Timer 7 Triggered \r\n");
+		cpt_measures++;
+		if (cpt_measures % 2 == 0) {
 			start_measures = 1;
 			retrieve_wind_speed = 1;
 			retrieve_wind_dir = 1;
-			if (cpt_tim7 == 10){
-				retrieve_rainfall = 1;
-				cpt_tim7 = 0;
-			}
 		}
+		if (cpt_measures == 10) {
+			retrieve_rainfall = 1;
+		}
+		cpt_inactivity++;
+
+		printf("Measure CPT : %d \r\n", cpt_measures);
+		printf("Inactivity CPT : %d \r\n", cpt_inactivity);
 	}
 }
 
 //GPIO EXTI Interruption Callback
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	HAL_ResumeTick();
+	IRQs = 1;
 	if (GPIO_Pin == IRQ_TEMP_Pin) {
-		printf("Temperature sensor OK\r\n");
 		tmp_sns_d_rdy = 1;
 	}
-
 	if (GPIO_Pin == IRQ_PRESS_Pin) {
-		printf("Pressure sensor OK\r\n");
 		prs_sns_d_rdy = 1;
 	}
 	if (GPIO_Pin == IRQ_TS_Pin) {
-		//HAL_ResumeTick();
 		BSP_TS_GetState(&TS_State);
 		x = TS_State.touchX[0];
 		y = TS_State.touchY[0];
 		IRQ_TS = 1;
+	}
+	if (GPIO_Pin == BTN2_Pin) {
+		IRQ_BTN2 = 1;
 	}
 }
 

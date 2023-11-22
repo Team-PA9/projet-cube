@@ -5,7 +5,6 @@
 #include "stm32746g_discovery_ts.h"
 #include "user_def_screen.h"
 
-
 /* SCREEN variables ----------------------------------------------------------*/
 uint8_t test_mes = 0;
 uint8_t refresh = 0;
@@ -19,7 +18,6 @@ char *Pluvio = "12345";
 
 extern TS_StateTypeDef TS_State;
 extern uint16_t x, y;
-
 
 /* SCREEN functions ----------------------------------------------------------*/
 void Display_LCD_Init(void) {
@@ -479,74 +477,59 @@ void Display_LCD_Button(int color) {
 	}
 }
 
-void SCREEN_Actualization(void){
+void SCREEN_Actualization(void) {
 	BSP_TS_GetState(&TS_State);
-	if (((80 < x) && (x < 120) && (y > 50) && (y < 90)
-			&& (test_mes == 0))) {
-		//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
+	if (((80 < x) && (x < 120) && (y > 50) && (y < 90) && (test_mes == 0))) {
 		Display_LCD_Button(1);
 		test_mes = 1;
 		mesure = 1;
 	} else if (((80 < x) && (x < 120) && (y > 120) && (y < 160)
 			&& (test_mes == 0))) {
-		//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 		Display_LCD_Button(2);
 		test_mes = 1;
 		mesure = 2;
 	} else if (((80 < x) && (x < 120) && (y > 190) && (y < 230)
 			&& (test_mes == 0))) {
-		//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 		Display_LCD_Button(3);
 		test_mes = 1;
 		mesure = 3;
 	} else if (((280 < x) && (x < 320) && (y > 50) && (y < 90)
 			&& (test_mes == 0))) {
-		//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 		Display_LCD_Button(4);
 		test_mes = 1;
 		mesure = 4;
 	} else if (((280 < x) && (x < 320) && (y > 120) && (y < 160)
 			&& (test_mes == 0))) {
-		//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 		Display_LCD_Button(5);
 		test_mes = 1;
 		mesure = 5;
 	} else if (((280 < x) && (x < 320) && (y > 190) && (y < 230)
 			&& (test_mes == 0))) {
-		//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 		Display_LCD_Button(6);
 		test_mes = 1;
 		mesure = 6;
 	} else {
 		if ((test_mes == 1) && (380 < x) && (x < 420) && (y > 190)
 				&& (y < 230)) {
-			//					  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
 			Display_LCD_Button(0);
 			test_mes = 0;
 			mesure = 0;
 		} else if ((test_mes == 1) && (30 < x) && (x < 80) && (y > 190)
 				&& (y < 230)) {
-			//					  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
 			Display_LCD_Button(7);
 
 			refresh = refresh + 1;
 			if (mesure == 1) {
-				//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 				Display_LCD_Button(1);
 			} else if (mesure == 2) {
-				//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 				Display_LCD_Button(2);
 			} else if (mesure == 3) {
-				//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 				Display_LCD_Button(3);
 			} else if (mesure == 4) {
-				//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 				Display_LCD_Button(4);
 			} else if (mesure == 5) {
-				//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 				Display_LCD_Button(5);
 			} else if (mesure == 6) {
-				//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 				Display_LCD_Button(6);
 			}
 
