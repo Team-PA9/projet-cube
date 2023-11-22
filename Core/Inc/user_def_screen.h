@@ -5,11 +5,9 @@
 #include "main.h"
 
 
-/* SCREEN structures ---------------------------------------------------------*/
-
-
 /* SCREEN functions declaration ----------------------------------------------*/
-//SCREEN GEN
-
+void Display_LCD_Init(void);
+void Display_LCD_Button(int);
+void SCREEN_Actualization(void);
 
 #endif /* INC_USER_DEF_SCREEN_H_ */

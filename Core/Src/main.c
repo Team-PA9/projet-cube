@@ -24,7 +24,6 @@
 #include "stm32746g_discovery_lcd.h"
 #include "stm32746g_discovery_sdram.h"
 #include "stm32746g_discovery_ts.h"
-
 #include "user_def_screen.h"
 #include "user_def_sdcard.h"
 #include "user_def_sensors.h"
@@ -71,21 +70,13 @@ volatile uint8_t retrieve_rainfall = 0;
 volatile uint8_t retrieve_wind_dir = 0;
 static uint16_t adc_buf[ADC_BUF_LEN]; //Define twice, "main"+"user_def_sensors".
 
-/*STILL TO ORGANIZE ----------------------------------------------------------*/
 //SCREEN Variables
 uint8_t IRQ_TS = 0;
-static TS_StateTypeDef TS_State;
+TS_StateTypeDef TS_State;
 uint16_t x, y;
-uint8_t test_mes = 0;
-uint8_t refresh = 0;
-uint8_t mesure = 0;
-char *temperature = "12345";
-char *Humidité = "12345";
-char *Pression = "1234567";
-char *vitesse = "12345";
-uint8_t direction = 6;
-char *Pluvio = "12345";
 
+
+/*STILL TO ORGANIZE ----------------------------------------------------------*/
 //SDCARD Variables
 FRESULT res, res2, res3, res4, res5, restest, res6; /* FatFs function common result code */
 uint32_t byteswritten, bytesread; /* File write/read counts */
@@ -114,10 +105,6 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 /*STILL TO ORGANIZE ----------------------------------------------------------*/
-//SCREEN PFP
-void Display_LCD_Init();
-void Display_LCD_Button(int);
-
 //SDCARD PFP
 void format(void);
 void new_log(FIL *fp, const char *filename, const char *content);
@@ -243,114 +230,36 @@ int main(void) {
 			SENSORS_Start_Conversion();
 			start_measures = 0;
 		}
-
 		if (tmp_sns_d_rdy == 1) {
 			SENSOR_hts221_Read_Data();
 			tmp_sns_d_rdy = 0;
 		}
-
 		if (prs_sns_d_rdy == 1) {
 			SENSOR_lps22hh_Read_Data();
 			prs_sns_d_rdy = 0;
 		}
-
 		if (retrieve_wind_speed == 1) {
 			SENSOR_WindSpeed_Read_Data();
 			retrieve_wind_speed = 0;
 		}
-
 		if (retrieve_wind_dir == 1) {
 			SENSOR_WindDir_Read_Data();
 			retrieve_wind_dir = 0;
 		}
-
 		if (retrieve_rainfall == 1) {
 			SENSOR_Rain_Read_Data();
 			retrieve_rainfall = 0;
 		}
 
-/*STILL TO ORGANIZE ----------------------------------------------------------*/
 		// SCREEN
 		if (IRQ_TS == 1) {
-			BSP_TS_GetState(&TS_State);
-			if (((80 < x) && (x < 120) && (y > 50) && (y < 90)
-					&& (test_mes == 0))) {
-				//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-				Display_LCD_Button(1);
-				test_mes = 1;
-				mesure = 1;
-			} else if (((80 < x) && (x < 120) && (y > 120) && (y < 160)
-					&& (test_mes == 0))) {
-				//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-				Display_LCD_Button(2);
-				test_mes = 1;
-				mesure = 2;
-			} else if (((80 < x) && (x < 120) && (y > 190) && (y < 230)
-					&& (test_mes == 0))) {
-				//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-				Display_LCD_Button(3);
-				test_mes = 1;
-				mesure = 3;
-			} else if (((280 < x) && (x < 320) && (y > 50) && (y < 90)
-					&& (test_mes == 0))) {
-				//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-				Display_LCD_Button(4);
-				test_mes = 1;
-				mesure = 4;
-			} else if (((280 < x) && (x < 320) && (y > 120) && (y < 160)
-					&& (test_mes == 0))) {
-				//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-				Display_LCD_Button(5);
-				test_mes = 1;
-				mesure = 5;
-			} else if (((280 < x) && (x < 320) && (y > 190) && (y < 230)
-					&& (test_mes == 0))) {
-				//				  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-				Display_LCD_Button(6);
-				test_mes = 1;
-				mesure = 6;
-			} else {
-				if ((test_mes == 1) && (380 < x) && (x < 420) && (y > 190)
-						&& (y < 230)) {
-					//					  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
-					Display_LCD_Button(0);
-					test_mes = 0;
-					mesure = 0;
-				} else if ((test_mes == 1) && (30 < x) && (x < 80) && (y > 190)
-						&& (y < 230)) {
-					//					  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
-					Display_LCD_Button(7);
-
-					refresh = refresh + 1;
-					if (mesure == 1) {
-						//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-						Display_LCD_Button(1);
-					} else if (mesure == 2) {
-						//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-						Display_LCD_Button(2);
-					} else if (mesure == 3) {
-						//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-						Display_LCD_Button(3);
-					} else if (mesure == 4) {
-						//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-						Display_LCD_Button(4);
-					} else if (mesure == 5) {
-						//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-						Display_LCD_Button(5);
-					} else if (mesure == 6) {
-						//							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-						Display_LCD_Button(6);
-					}
-
-					test_mes = 1;
-
-				}
-			}
+			SCREEN_Actualization();
 			IRQ_TS = 0;
-		} else { //µP Sleep
-			HAL_SuspendTick();
-			HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 		}
+
+
+/*STILL TO ORGANIZE ----------------------------------------------------------*/
+
 
 		//SDCARD
 		//	int random[10] = {48,49,50,51,52,53,54,55,56,57};
@@ -431,6 +340,11 @@ int main(void) {
 				FATFS_UnLinkDriver(SDPath);
 			}
 		}
+
+//		else { //µP Sleep
+//			HAL_SuspendTick();
+//			HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+//		}
 /*---------------------------------------------------------- STILL TO ORGANIZE*/
 
 	}
@@ -526,7 +440,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		prs_sns_d_rdy = 1;
 	}
 	if (GPIO_Pin == IRQ_TS_Pin) {
-		HAL_ResumeTick();
+		//HAL_ResumeTick();
 		BSP_TS_GetState(&TS_State);
 		x = TS_State.touchX[0];
 		y = TS_State.touchY[0];
@@ -535,464 +449,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 /*STILL TO ORGANIZE ----------------------------------------------------------*/
-//SCREEN
-void Display_LCD_Init() {
-	BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, SDRAM_DEVICE_ADDR);
-	BSP_LCD_SetLayerVisible(LTDC_ACTIVE_LAYER, ENABLE);
-	BSP_LCD_SetFont(&Font16);
-	BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
-
-	BSP_LCD_Clear(LCD_COLOR_BLACK);
-	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "Menu Principal :", CENTER_MODE);
-}
-
-void Display_LCD_Button(int color) {
-	if (color == 1) {
-
-		if (refresh == 0) {
-			// Titre de la mesure
-
-			BSP_LCD_Clear(LCD_COLOR_BLACK);
-			BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "TEMPERATURE :",
-					CENTER_MODE);
-
-			// BTN REFRESH
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_BROWN);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(60,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "REFRESH", LEFT_MODE);
-
-			// BTN HOME
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_GRAY);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(100,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "HOME", RIGHT_MODE);
-		}
-
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         'C ]", CENTER_MODE);
-
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &temperature, CENTER_MODE);
-
-		refresh = 1;
-
-	} else if (color == 2) {
-		if (refresh == 0) {
-			// Titre de la mesure
-
-			BSP_LCD_Clear(LCD_COLOR_BLACK);
-			BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "HUMIDITE :",
-					CENTER_MODE);
-
-			// BTN REFRESH
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_BROWN);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(60,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "REFRESH", LEFT_MODE);
-
-			// BTN HOME
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_GRAY);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(100,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "HOME", RIGHT_MODE);
-		}
-		// Affichage de la mesure
-
-		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         % ]", CENTER_MODE);
-
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &Humidité, CENTER_MODE);
-
-		refresh = 1;
-
-	} else if (color == 3) {
-		if (refresh == 0) {
-			// Titre de la mesure
-
-			BSP_LCD_Clear(LCD_COLOR_BLACK);
-			BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "PRESSION :",
-					CENTER_MODE);
-
-			// BTN REFRESH
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_BROWN);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(60,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "REFRESH", LEFT_MODE);
-
-			// BTN HOME
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_GRAY);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(100,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "HOME", RIGHT_MODE);
-		}
-
-		//Affichage de la mesure
-
-		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[            Pa ]", CENTER_MODE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &Pression, CENTER_MODE);
-
-		refresh = 1;
-	} else if (color == 4) {
-		if (refresh == 0) {
-			// Titre de la mesure
-
-			BSP_LCD_Clear(LCD_COLOR_BLACK);
-			BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "VITESSE :", CENTER_MODE);
-
-			// BTN REFRESH
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_BROWN);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(60,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "REFRESH", LEFT_MODE);
-
-			// BTN HOME
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_GRAY);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(100,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "HOME", RIGHT_MODE);
-		}
-
-		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         m/s ]", CENTER_MODE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &vitesse, CENTER_MODE);
-		refresh = 1;
-
-	} else if (color == 5) {
-		if (refresh == 0) {
-			// Titre de la mesure
-
-			BSP_LCD_Clear(LCD_COLOR_BLACK);
-			BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) " DIRECTION :",
-					CENTER_MODE);
-
-			// BTN REFRESH
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_BROWN);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(60,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "REFRESH", LEFT_MODE);
-
-			// BTN HOME
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_GRAY);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(100,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "HOME", RIGHT_MODE);
-		}
-
-		// Affichage de la mesure
-
-		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-
-		if (direction == 0) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ N ]", CENTER_MODE);
-		} else if (direction == 1) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ NE ]", CENTER_MODE);
-		} else if (direction == 2) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ E ]", CENTER_MODE);
-		} else if (direction == 3) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ SE ]", CENTER_MODE);
-		} else if (direction == 4) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ S ]", CENTER_MODE);
-		} else if (direction == 5) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ SW ]", CENTER_MODE);
-		} else if (direction == 6) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ W ]", CENTER_MODE);
-		} else if (direction == 7) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ NW ]", CENTER_MODE);
-		}
-		refresh = 1;
-
-	} else if (color == 6) {
-		if (refresh == 0) {
-			// Titre de la mesure
-
-			BSP_LCD_Clear(LCD_COLOR_BLACK);
-			BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "PLUVIOMETRIE :",
-					CENTER_MODE);
-
-			// BTN REFRESH
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_BROWN);
-			BSP_LCD_FillCircle(30,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(60,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "REFRESH", LEFT_MODE);
-
-			// BTN HOME
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 20);
-			BSP_LCD_SetTextColor(LCD_COLOR_GRAY);
-			BSP_LCD_FillCircle(400,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 6), 18);
-
-			BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-			BSP_LCD_DisplayStringAt(100,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-					(uint8_t*) "HOME", RIGHT_MODE);
-		}
-		// Affichage de la mesure
-
-		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         mm/H ]", CENTER_MODE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &Pluvio, CENTER_MODE);
-		refresh = 1;
-
-	} else if (color == 7) {
-		refresh = 1;
-		if (mesure == 1) {
-			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(1);
-		} else if (mesure == 2) {
-			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(2);
-		} else if (mesure == 3) {
-			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(3);
-		} else if (mesure == 4) {
-			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(4);
-		} else if (mesure == 5) {
-			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(5);
-		} else if (mesure == 6) {
-			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(6);
-		}
-	} else {
-
-		// Titre
-
-		BSP_LCD_Clear(LCD_COLOR_BLACK);
-		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "Menu Principal :",
-				CENTER_MODE);
-		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-
-		// BTN P1
-
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_FillCircle(100,
-				BSP_LCD_GetYSize() - (3 * BSP_LCD_GetYSize() / 4), 20);
-		BSP_LCD_SetTextColor(LCD_COLOR_RED);
-		BSP_LCD_FillCircle(100,
-				BSP_LCD_GetYSize() - (3 * BSP_LCD_GetYSize() / 4), 18);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(130,
-				BSP_LCD_GetYSize() - (3 * BSP_LCD_GetYSize() / 4),
-				(uint8_t*) "P1:Temp", LEFT_MODE);
-
-		// BTN P2
-
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_FillCircle(100,
-				BSP_LCD_GetYSize() - (2 * BSP_LCD_GetYSize() / 4), 20);
-		BSP_LCD_SetTextColor(LCD_COLOR_ORANGE);
-		BSP_LCD_FillCircle(100,
-				BSP_LCD_GetYSize() - (2 * BSP_LCD_GetYSize() / 4), 18);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(130,
-				BSP_LCD_GetYSize() - (2 * BSP_LCD_GetYSize() / 4),
-				(uint8_t*) "P2:Hum ", LEFT_MODE);
-
-		// BTN P3
-
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_FillCircle(100,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4), 20);
-		BSP_LCD_SetTextColor(LCD_COLOR_YELLOW);
-		BSP_LCD_FillCircle(100,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4), 18);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(130,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-				(uint8_t*) "P3:Pres", LEFT_MODE);
-
-		// BTN P4
-
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_FillCircle(300,
-				BSP_LCD_GetYSize() - (3 * BSP_LCD_GetYSize() / 4), 20);
-		BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-		BSP_LCD_FillCircle(300,
-				BSP_LCD_GetYSize() - (3 * BSP_LCD_GetYSize() / 4), 18);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(330,
-				BSP_LCD_GetYSize() - (3 * BSP_LCD_GetYSize() / 4),
-				(uint8_t*) "P4:Vit", LEFT_MODE);
-
-		// BTN P5
-
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_FillCircle(300,
-				BSP_LCD_GetYSize() - (2 * BSP_LCD_GetYSize() / 4), 20);
-		BSP_LCD_SetTextColor(LCD_COLOR_BLUE);
-		BSP_LCD_FillCircle(300,
-				BSP_LCD_GetYSize() - (2 * BSP_LCD_GetYSize() / 4), 18);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(330,
-				BSP_LCD_GetYSize() - (2 * BSP_LCD_GetYSize() / 4),
-				(uint8_t*) "P5:Dir", LEFT_MODE);
-
-		// BTN P6
-
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_FillCircle(300,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4), 20);
-		BSP_LCD_SetTextColor(LCD_COLOR_MAGENTA);
-		BSP_LCD_FillCircle(300,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4), 18);
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-		BSP_LCD_DisplayStringAt(330,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
-				(uint8_t*) "P6:Pluv", LEFT_MODE);
-
-		refresh = 0;
-	}
-}
-
 //SDCARD
 void format(void) {
 	/*##-2- Register the file system object to the FatFs module ##############*/
