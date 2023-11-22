@@ -18,12 +18,12 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
-#include "print_uart.h"
-#include "lps22hh_reg.h"
 #include "hts221_reg.h"
+#include "lps22hh_reg.h"
+#include "print_uart.h"
 #include "stm32746g_discovery.h"
-#include "stm32746g_discovery_sdram.h"
 #include "stm32746g_discovery_lcd.h"
+#include "stm32746g_discovery_sdram.h"
 #include "stm32746g_discovery_ts.h"
 
 /* USER CODE END Includes */
@@ -42,13 +42,15 @@
 #endif /* __GNUC__ */
 
 #define SENSOR_BUS hi2c1
+#define BOOT_TIME 5
+#define TX_BUF_DIM 1000
+#define ADC_BUF_LEN 1
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define BOOT_TIME 5
-#define TX_BUF_DIM 1000
-#define ADC_BUF_LEN 1
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -91,6 +93,25 @@ char *Pression = "1234567";
 char *vitesse = "12345";
 uint8_t direction = 6;
 char *Pluvio = "12345";
+
+//Variables Fabian
+FRESULT res, res2, res3, res4, res5, restest, res6; /* FatFs function common result code */
+uint32_t byteswritten, bytesread; /* File write/read counts */
+uint8_t wtext[] = "LOG de temp"; /* File write buffer */
+uint8_t wtext2[] = "LOG de pres";
+uint8_t wtext3[] = "LOG de dir";
+uint8_t wtext4[] = "LOG de vit";
+uint8_t wtext5[] = "LOG de pluv";
+uint8_t wtexttest[] = "asd";
+const TCHAR *nom_file = "test.txt";
+uint8_t rtext[100];
+uint8_t log_temperature[100];
+//uint8_t log_pression[100];
+//uint8_t log_direction[100];
+//uint8_t log_vitesse[100];
+//uint8_t log_pluviometre[100];
+FIL* file1, file2, file3, file4, file5, filetest; /* File read buffer */
+volatile uint8_t Flag_IRQ_Btn = 0;
 
 /* USER CODE END PV */
 
@@ -155,23 +176,7 @@ void Display_LCD_Button(int);
  */
 int main(void) {
 	/* USER CODE BEGIN 1 */
-	FRESULT res, res2, res3, res4, res5, restest, res6; /* FatFs function common result code */
-	uint32_t byteswritten, bytesread; /* File write/read counts */
-	uint8_t wtext[] = "LOG de temp"; /* File write buffer */
-	uint8_t wtext2[] = "LOG de pres";
-	uint8_t wtext3[] = "LOG de dir";
-	uint8_t wtext4[] = "LOG de vit";
-	uint8_t wtext5[] = "LOG de pluv";
-	uint8_t wtexttest[] = "asd";
-	const TCHAR *nom_file = "test.txt";
-	uint8_t rtext[100];
-	uint8_t log_temperature[100];
 
-	//uint8_t log_pression[100];
-	//uint8_t log_direction[100];
-	//uint8_t log_vitesse[100];
-	//uint8_t log_pluviometre[100];
-	FIL file1, file2, file3, file4, file5, filetest; /* File read buffer */
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -223,7 +228,7 @@ int main(void) {
 			Error_Handler();
 		} else {
 			new_log(&filetest, "test.txt", "test");
-			new_log(&file1, "LOG_temp.txt", "Log de temperature");
+			new_log(file1, "LOG_temp.txt", "Log de temperature");
 			new_log(&file2, "LOG_Pres.txt", "Log de pression");
 			new_log(&file3, "LOG_dir.txt", "Log de direction");
 			new_log(&file4, "LOG_vit.txt", "Log de vitesse");
@@ -690,7 +695,7 @@ int main(void) {
 			HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_1);
 			HAL_Delay(500);
 		} else if (Flag_IRQ_Btn == 1) {
-			for (int i = 48; i < 58; i++)
+			for (char i = 48; i < 58; i++)
 			//for(int i = 0; i < 10; i++)
 					{
 				HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_1);
@@ -700,17 +705,17 @@ int main(void) {
 					/* FatFs Initialization Error */
 					Error_Handler();
 				} else {
-					if (f_open(&file1, "LOG_Temp.TXT",
+					if (f_open(file1, "LOG_Temp.TXT",
 							FA_OPEN_APPEND | FA_WRITE) != FR_OK) {
 						/* 'STM32.TXT' file Open for write Error */
 						Error_Handler();
 					} else {
 						/*##-5- Write data to the text file ################################*/
-						f_puts(" \n", &file1);
+						f_puts(" \n", file1);
 						//restest = f_write(&file1, wtexttest, sizeof(wtexttest), (void *)&byteswritten);
 						//restest = f_write(&file1, log_temperature[i], sizeof(log_temperature[i]), (void *)&byteswritten);
-						char *value = i;
-						restest = f_write(&file1, &value, sizeof(&value),
+						char value = i;
+						restest = f_write(file1, &value, sizeof(&value),
 								(void*) &byteswritten);
 						//f_write(&file1, space, sizeof(space), (void *)&byteswritten);
 
@@ -719,17 +724,17 @@ int main(void) {
 							Error_Handler();
 						} else {
 							/*##-6- Close the open text file #################################*/
-							f_close(&file1);
+							f_close(file1);
 
 							/*##-7- Open the text file object with read access ###############*/
 							//if(f_open(&file1, "STM32.TXT", FA_READ) != FR_OK)
-							if (f_open(&file1, "LOG_Temp.TXT", FA_READ)
+							if (f_open(file1, "LOG_Temp.TXT", FA_READ)
 									!= FR_OK) {
 								/* 'STM32.TXT' file Open for read Error */
 								Error_Handler();
 							} else {
 								/*##-8- Read data from the text file ###########################*/
-								restest = f_read(&file1, rtext, sizeof(rtext),
+								restest = f_read(file1, rtext, sizeof(rtext),
 										(UINT*) &bytesread);
 
 								if ((bytesread == 0) || (restest != FR_OK)) {
@@ -737,7 +742,7 @@ int main(void) {
 									Error_Handler();
 								} else {
 									/*##-9- Close the open text file #############################*/
-									f_close(&file1);
+									f_close(file1);
 									Flag_IRQ_Btn = 0;
 									//
 									//						  /*##-10- Compare read data with the expected data ############*/
@@ -875,24 +880,24 @@ void add_log(FIL *fp, const TCHAR *nom_file, const void *data) {
 		/* FatFs Initialization Error */
 		Error_Handler();
 	} else {
-		if (f_open(&fp, nom_file, FA_OPEN_APPEND | FA_WRITE) != FR_OK) {
+		if (f_open(fp, nom_file, FA_OPEN_APPEND | FA_WRITE) != FR_OK) {
 			/* 'STM32.TXT' file Open for write Error */
 			Error_Handler();
 		} else {
 			/*##-5- Write data to the text file ################################*/
-			f_puts("  \n", &fp);
-			res = f_write(&fp, data, sizeof(data), (void*) &byteswritten);
+			f_puts("  \n", fp);
+			res = f_write(fp, data, sizeof(data), (void*) &byteswritten);
 
 			if ((byteswritten == 0) || (res != FR_OK)) {
 				/* 'STM32.TXT' file Write or EOF Error */
 				Error_Handler();
 			} else {
 				/*##-6- Close the open text file #################################*/
-				f_close(&fp);
+				f_close(fp);
 
 				/*##-7- Open the text file object with read access ###############*/
 				//if(f_open(&file1, "STM32.TXT", FA_READ) != FR_OK)
-				if (f_open(&fp, "LOG_Temp.TXT", FA_READ) != FR_OK) {
+				if (f_open(fp, "LOG_Temp.TXT", FA_READ) != FR_OK) {
 					/* 'STM32.TXT' file Open for read Error */
 					Error_Handler();
 				} else {
@@ -907,7 +912,7 @@ void add_log(FIL *fp, const TCHAR *nom_file, const void *data) {
 					//					  else
 					//					  {
 					/*##-9- Close the open text file #############################*/
-					f_close(&fp);
+					f_close(fp);
 					Flag_IRQ_Btn = 0;
 					//
 					//						  /*##-10- Compare read data with the expected data ############*/
@@ -1060,6 +1065,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == IRQ_PRESS_Pin) {
 		printf("Pressure sensor OK\r\n");
 		prs_sns_d_rdy = 1;
+	}
+	if (GPIO_Pin == IRQ_TS_Pin) {
+		HAL_ResumeTick();
+		BSP_TS_GetState(&TS_State);
+		x = TS_State.touchX[0];
+		y = TS_State.touchY[0];
+		IRQ_TS = 1;
 	}
 }
 
@@ -1563,15 +1575,6 @@ void Display_LCD_Button(int color) {
 
 		refresh = 0;
 	}
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	HAL_ResumeTick();
-	BSP_TS_GetState(&TS_State);
-	x = TS_State.touchX[0];
-	y = TS_State.touchY[0];
-	IRQ_TS = 1;
-
 }
 
 /* USER CODE END 4 */
