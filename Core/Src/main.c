@@ -20,11 +20,14 @@
 #include <string.h>
 #include "hts221_reg.h"
 #include "lps22hh_reg.h"
-#include "print_uart.h"
 #include "stm32746g_discovery.h"
 #include "stm32746g_discovery_lcd.h"
 #include "stm32746g_discovery_sdram.h"
 #include "stm32746g_discovery_ts.h"
+
+#include "user_def_screen.h"
+#include "user_def_sdcard.h"
+#include "user_def_sensors.h"
 
 /* USER CODE END Includes */
 
@@ -35,16 +38,16 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+//UART PRINTF Define
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #else
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE * f)
 #endif /* __GNUC__ */
 
-#define SENSOR_BUS hi2c1
-#define BOOT_TIME 5
-#define TX_BUF_DIM 1000
-#define ADC_BUF_LEN 1
+//SENSORS Define
+#define ADC_BUF_LEN 1 //Define twice, "main"+"user_def_sensors".
 
 /* USER CODE END PD */
 
@@ -56,37 +59,26 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t workBuffer[_MAX_SS];
+//GEN Variables
+volatile uint8_t cpt_tim7 = 0;
 
-static uint32_t data_raw_pressure;
-static int16_t data_raw_humidity;
-static int16_t data_raw_temperature;
-
-static float pressure_hPa;
-static float humidity_perc;
-static float temperature_degC;
-static float windspeed_kph;
-static float rainfall_mm;
-
-static uint8_t whoamI, rst;
-static uint8_t tx_buffer[TX_BUF_DIM];
-static uint16_t adc_buf[ADC_BUF_LEN];
-
+//SENSORS Variables
 volatile uint8_t start_measures = 0;
 volatile uint8_t tmp_sns_d_rdy = 0;
 volatile uint8_t prs_sns_d_rdy = 0;
 volatile uint8_t retrieve_wind_speed = 0;
 volatile uint8_t retrieve_rainfall = 0;
 volatile uint8_t retrieve_wind_dir = 0;
+static uint16_t adc_buf[ADC_BUF_LEN]; //Define twice, "main"+"user_def_sensors".
 
-// Variable de eliott
+/*STILL TO ORGANIZE ----------------------------------------------------------*/
+//SCREEN Variables
 uint8_t IRQ_TS = 0;
 static TS_StateTypeDef TS_State;
 uint16_t x, y;
 uint8_t test_mes = 0;
 uint8_t refresh = 0;
 uint8_t mesure = 0;
-
 char *temperature = "12345";
 char *Humidité = "12345";
 char *Pression = "1234567";
@@ -94,74 +86,42 @@ char *vitesse = "12345";
 uint8_t direction = 6;
 char *Pluvio = "12345";
 
-//Variables Fabian
+//SDCARD Variables
 FRESULT res, res2, res3, res4, res5, restest, res6; /* FatFs function common result code */
 uint32_t byteswritten, bytesread; /* File write/read counts */
-uint8_t wtext[] = "LOG de temp"; /* File write buffer */
-uint8_t wtext2[] = "LOG de pres";
-uint8_t wtext3[] = "LOG de dir";
-uint8_t wtext4[] = "LOG de vit";
-uint8_t wtext5[] = "LOG de pluv";
+uint8_t wtext[] = "LOG Temp"; /* File write buffer */
+uint8_t wtext2[] = "LOG Pres";
+uint8_t wtext3[] = "LOG WDir";
+uint8_t wtext4[] = "LOG WSpe";
+uint8_t wtext5[] = "LOG Rain";
 uint8_t wtexttest[] = "asd";
 const TCHAR *nom_file = "test.txt";
 uint8_t rtext[100];
 uint8_t log_temperature[100];
-//uint8_t log_pression[100];
-//uint8_t log_direction[100];
-//uint8_t log_vitesse[100];
-//uint8_t log_pluviometre[100];
-FIL* file1, file2, file3, file4, file5, filetest; /* File read buffer */
+uint8_t log_pression[100];
+uint8_t log_direction[100];
+uint8_t log_vitesse[100];
+uint8_t log_pluviometre[100];
+FIL *filetest, *file1, *file2, *file3, *file4, *file5; /* File read buffer */
+uint8_t workBuffer[_MAX_SS];
 volatile uint8_t Flag_IRQ_Btn = 0;
+/*---------------------------------------------------------- STILL TO ORGANIZE*/
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+
+/*STILL TO ORGANIZE ----------------------------------------------------------*/
+//SCREEN PFP
+void Display_LCD_Init();
+void Display_LCD_Button(int);
+
+//SDCARD PFP
 void format(void);
 void new_log(FIL *fp, const char *filename, const char *content);
 void add_log(FIL *fp, const TCHAR *nom_file, const void *data);
-
-void static lps22hh_Init(void);
-void static hts221_Init(void);
-
-static int32_t lps22hh_write(void *handle, uint8_t reg, const uint8_t *bufp,
-		uint16_t len);
-static int32_t lps22hh_read(void *handle, uint8_t reg, uint8_t *bufp,
-		uint16_t len);
-
-static int32_t hts221_write(void *handle, uint8_t reg, const uint8_t *bufp,
-		uint16_t len);
-static int32_t hts221_read(void *handle, uint8_t reg, uint8_t *bufp,
-		uint16_t len);
-
-static void tx_com(uint8_t *tx_buffer, uint16_t len);
-static void platform_delay(uint32_t ms);
-
-static float calculateWindSpeed(uint16_t timer_counter);
-static float calculateRainfall(uint16_t timer_counter);
-static
-const char* determineDirection(uint16_t adc_value);
-
-static stmdev_ctx_t dev_ctx_lps22hh;
-static stmdev_ctx_t dev_ctx_hts221;
-
-typedef struct {
-	float x0;
-	float y0;
-	float x1;
-	float y1;
-} lin_t;
-
-lin_t lin_hum;
-lin_t lin_temp;
-
-float linear_interpolation(lin_t *lin, int16_t x) {
-	return ((lin->y1 - lin->y0) * x
-			+ ((lin->x1 * lin->y0) - (lin->x0 * lin->y1))) / (lin->x1 - lin->x0);
-}
-void Display_LCD_Init();
-void Display_LCD_Button(int);
 
 /* USER CODE END PFP */
 
@@ -210,397 +170,107 @@ int main(void) {
 	MX_LTDC_Init();
 	MX_FATFS_Init();
 	/* USER CODE BEGIN 2 */
+	printf("Initialization started : \r\n");
 
-	/*##-1- Link the micro SD disk I/O driver ##################################*/
-	//  if(FATFS_LinkDriver(&SD_Driver, SDPath) == 0)
-	// {
-	/*##-2- Register the file system object to the FatFs module ##############*/
-	if (f_mount(&SDFatFS, (TCHAR
-	const*) SDPath, 0) != FR_OK) {
-		/* FatFs Initialization Error */
-		Error_Handler();
-	} else {
-		/*##-3- Create a FAT file system (format) on the logical drive #########*/
-		/* WARNING: Formatting the uSD card will delete all content on the device */
-		if (f_mkfs((TCHAR
-		const*) SDPath, FM_ANY, 0, workBuffer, sizeof(workBuffer)) != FR_OK) {
-			/* FatFs Format Error */
-			Error_Handler();
-		} else {
-			new_log(&filetest, "test.txt", "test");
-			new_log(file1, "LOG_temp.txt", "Log de temperature");
-			new_log(&file2, "LOG_Pres.txt", "Log de pression");
-			new_log(&file3, "LOG_dir.txt", "Log de direction");
-			new_log(&file4, "LOG_vit.txt", "Log de vitesse");
-			//new_log(&file5, "LOG_Pluvio.txt" , "Log de pluie");
-		}
-	}
-	FATFS_UnLinkDriver(SDPath);
-
-	//          /*##-4- Create and Open a new text file object with write access #####*/
-	//          //if(f_open(&SDFile, "STM32.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	//		  if(f_open(&file1, "LOG_Temp.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	//          {
-	//            /* 'STM32.TXT' file Open for write Error */
-	//            Error_Handler();
-	//          }
-	//          else
-	//          {
-	//            /*##-5- Write data to the text file ################################*/
-	//            res = f_write(&file1, wtext, sizeof(wtext), (void *)&byteswritten);
-	//
-	//            if((byteswritten == 0) || (res != FR_OK))
-	//            {
-	//              /* 'STM32.TXT' file Write or EOF Error */
-	//              Error_Handler();
-	//            }
-	//            else
-	//            {
-	//              /*##-6- Close the open text file #################################*/
-	//              f_close(&file1);
-	//
-	////              /*##-7- Open the text file object with read access ###############*/
-	////              //if(f_open(&file1, "STM32.TXT", FA_READ) != FR_OK)
-	////			  if(f_open(&file1, "LOG_Temp.TXT", FA_READ) != FR_OK)
-	////              {
-	////                /* 'STM32.TXT' file Open for read Error */
-	////                Error_Handler();
-	////              }
-	////              else
-	////              {
-	////                /*##-8- Read data from the text file ###########################*/
-	////                res = f_read(&file1, rtext, sizeof(rtext), (UINT*)&bytesread);
-	////
-	////                if((bytesread == 0) || (res != FR_OK))
-	////                {
-	////                  /* 'STM32.TXT' file Read or EOF Error */
-	////                  Error_Handler();
-	////                }
-	////                else
-	////                {
-	////                  /*##-9- Close the open text file #############################*/
-	////                  f_close(&file1);
-	////
-	////                  /*##-10- Compare read data with the expected data ############*/
-	////                  if((bytesread != byteswritten))
-	////                  {
-	////                    /* Read data is different from the expected data */
-	////                    Error_Handler();
-	////                  }
-	////                  else
-	////                  {
-	////                    /* Success of the demo: no error occurrence */
-	////                    //BSP_LED_On(LED1);
-	////                  }
-	////                }
-	////              }
-	//            }
-	//
-	//			 if(f_open(&file2, "LOG_Pres.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	//				{
-	//				  Error_Handler();
-	//				}
-	//				else
-	//				{
-	//				  res2 = f_write(&file2, wtext2, sizeof(wtext2), (void *)&byteswritten);
-	//
-	//				  if((byteswritten == 0) || (res2 != FR_OK))
-	//				  {
-	//					Error_Handler();
-	//				  }
-	//				  else
-	//				  {
-	//					f_close(&file2);
-	//
-	//				  if(f_open(&file2, "LOG_Pres.TXT", FA_READ) != FR_OK)
-	//					{
-	//					  Error_Handler();
-	//					}
-	//					else
-	//					{
-	//					  res2 = f_read(&file2, rtext, sizeof(rtext), (UINT*)&bytesread);
-	//
-	//					  if((bytesread == 0) || (res2 != FR_OK))
-	//					  {
-	//						Error_Handler();
-	//					  }
-	//					  else
-	//					  {
-	//						f_close(&file2);
-	//
-	//						if((bytesread != byteswritten))
-	//						{
-	//						  Error_Handler();
-	//						}
-	//						else
-	//						{
-	//
-	//						}
-	//					  }
-	//					}
-	//				  }
-	//				}
-	//
-	//			  if(f_open(&file3, "LOG_Dir.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	//				{
-	//				  Error_Handler();
-	//				}
-	//				else
-	//				{
-	//				  res3 = f_write(&file3, wtext3, sizeof(wtext3), (void *)&byteswritten);
-	//
-	//				  if((byteswritten == 0) || (res3 != FR_OK))
-	//				  {
-	//					Error_Handler();
-	//				  }
-	//				  else
-	//				  {
-	//					f_close(&file3);
-	//
-	//				  if(f_open(&file3, "LOG_Dir.TXT", FA_READ) != FR_OK)
-	//					{
-	//					  Error_Handler();
-	//					}
-	//					else
-	//					{
-	//					  res3 = f_read(&file3, rtext, sizeof(rtext), (UINT*)&bytesread);
-	//
-	//					  if((bytesread == 0) || (res3 != FR_OK))
-	//					  {
-	//						Error_Handler();
-	//					  }
-	//					  else
-	//					  {
-	//						f_close(&file3);
-	//
-	//						if((bytesread != byteswritten))
-	//						{
-	//						  Error_Handler();
-	//						}
-	//						else
-	//						{
-	//
-	//						}
-	//					  }
-	//					}
-	//				  }
-	//				}
-	//
-	//			  if(f_open(&file4, "LOG_Vit.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	//				{
-	//				  Error_Handler();
-	//				}
-	//				else
-	//				{
-	//				  res4 = f_write(&file4, wtext4, sizeof(wtext4), (void *)&byteswritten);
-	//
-	//				  if((byteswritten == 0) || (res4 != FR_OK))
-	//				  {
-	//					Error_Handler();
-	//				  }
-	//				  else
-	//				  {
-	//					f_close(&file4);
-	//
-	//				  if(f_open(&file4, "LOG_Vit.TXT", FA_READ) != FR_OK)
-	//					{
-	//					  Error_Handler();
-	//					}
-	//					else
-	//					{
-	//					  res4 = f_read(&file4, rtext, sizeof(rtext), (UINT*)&bytesread);
-	//
-	//					  if((bytesread == 0) || (res4 != FR_OK))
-	//					  {
-	//						Error_Handler();
-	//					  }
-	//					  else
-	//					  {
-	//						f_close(&file4);
-	//
-	//						if((bytesread != byteswritten))
-	//						{
-	//						  Error_Handler();
-	//						}
-	//						else
-	//						{
-	//
-	//						}
-	//					  }
-	//					}
-	//				  }
-	//				}
-	//
-	//			  if(f_open(&file5, "LOG_Pluv.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	//				{
-	//				  Error_Handler();
-	//				}
-	//				else
-	//				{
-	//				  res5 = f_write(&file5, wtext5, sizeof(wtext5), (void *)&byteswritten);
-	//
-	//				  if((byteswritten == 0) || (res5 != FR_OK))
-	//				  {
-	//					Error_Handler();
-	//				  }
-	//				  else
-	//				  {
-	//					f_close(&file5);
-	//
-	//				  if(f_open(&file5, "LOG_Pluv.TXT", FA_READ) != FR_OK)
-	//					{
-	//					  Error_Handler();
-	//					}
-	//					else
-	//					{
-	//					  res5 = f_read(&file5, rtext, sizeof(rtext), (UINT*)&bytesread);
-	//
-	//					  if((bytesread == 0) || (res5 != FR_OK))
-	//					  {
-	//						Error_Handler();
-	//					  }
-	//					  else
-	//					  {
-	//						f_close(&file5);
-	//
-	//						if((bytesread != byteswritten))
-	//						{
-	//						  Error_Handler();
-	//						}
-	//						else
-	//						{
-	//
-	//						}
-	//					  }
-	//					}
-	//				  }
-	//				}
-	//		  new_log(&filetest, "test.txt" , "test");
-	//          }
-	//        }
-	//      }
-	//      FATFS_UnLinkDriver(SDPath);
-	// }
-
-	/*##-11- Unlink the micro SD disk I/O driver ###############################*/
-
-	//HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+	//GEN PROJECT TIMER Initialization
+	printf("\n - General Project Timer \r\n");
 	HAL_TIM_Base_Start_IT(&htim7);
+	printf("Done. \r\n");
+
+	//SENSORS Initialization
+	printf("\n - Sensors \r\n");
 	HAL_TIM_Base_Start(&htim8);
 	HAL_TIM_Base_Start(&htim2);
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adc_buf, ADC_BUF_LEN);
+	SENSOR_lps22hh_Init();
+	SENSOR_hts221_Init();
+	printf("Done. \r\n");
 
-	lps22hh_Init();
-	hts221_Init();
-
+/*STILL TO ORGANIZE ----------------------------------------------------------*/
+	//SCREEN Initialization
+	printf("\n - Screen \r\n");
 	BSP_LCD_Init();
 	Display_LCD_Init();
 	Display_LCD_Button(0);
+	HAL_GPIO_WritePin(GLED_GPIO_Port, GLED_Pin, 1);
+	HAL_GPIO_WritePin(RLED_GPIO_Port, RLED_Pin, 0);
+	HAL_GPIO_WritePin(BLED_GPIO_Port, BLED_Pin, 0);
+	printf("Done. \r\n");
 
+	printf("\n - Touch Screen \r\n");
 	BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
 	BSP_TS_ResetTouchData(&TS_State);
 	BSP_TS_ITConfig();
 	BSP_TS_ITClear();
-
 	x = TS_State.touchX[0];
 	y = TS_State.touchY[0];
+	printf("Done. \r\n");
 
-	// print that the initialization is done
-	printf("Init done\r\n");
+	//SDCARD Initialization
+	printf("\n - SDCard \r\n");
+	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
+		Error_Handler(); /* FatFs Initialization Error */
+	}
+	else {
+		if (f_mkfs((TCHAR const*) SDPath, FM_ANY, 0, workBuffer,
+					sizeof(workBuffer)) != FR_OK) {
+			Error_Handler(); /* FatFs Format Error */
+		}
+		else {
+			new_log(filetest, "test.txt", "test");
+			new_log(file1, "LOG_Temp.txt", "Log temperature");
+			new_log(file2, "LOG_Pres.txt", "Log pressure");
+			new_log(file3, "LOG_WDir.txt", "Log wind direction");
+			new_log(file4, "LOG_WSpe.txt", "Log wind speed");
+			new_log(file5, "LOG_Rain.txt" , "Log rainfall");
+		}
+	}
+	FATFS_UnLinkDriver(SDPath);
+	printf("Done. \r\n");
+/*---------------------------------------------------------- STILL TO ORGANIZE*/
+
+	printf("\n Initialization completed. \r\n");
 
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
+
+		//SENSORS
 		if (start_measures == 1) {
 			printf("Measures conversions started\r\n");
-			// start the temperature conversion
-			hts221_one_shoot_trigger_set(&dev_ctx_hts221, PROPERTY_ENABLE);
-
-			uint8_t ctrl_reg2 = 0;
-			lps22hh_read_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2,
-					1);
-			ctrl_reg2 |= 1;
-			lps22hh_write_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2,
-					1);
-
+			SENSORS_Start_Conversion();
 			start_measures = 0;
 		}
 
 		if (tmp_sns_d_rdy == 1) {
-			/* Read humidity data */
-			memset(&data_raw_humidity, 0x00, sizeof(int16_t));
-			hts221_humidity_raw_get(&dev_ctx_hts221, &data_raw_humidity);
-			humidity_perc = linear_interpolation(&lin_hum, data_raw_humidity);
-
-			if (humidity_perc < 0) {
-				humidity_perc = 0;
-			}
-
-			if (humidity_perc > 100) {
-				humidity_perc = 100;
-			}
-
-			sprintf((char*) tx_buffer, "Humidity [%%]:%3.2f\r\n",
-					humidity_perc);
-			tx_com(tx_buffer, strlen((char
-			const*) tx_buffer));
-
-			/* Read temperature data */
-			memset(&data_raw_temperature, 0x00, sizeof(int16_t));
-			hts221_temperature_raw_get(&dev_ctx_hts221, &data_raw_temperature);
-			temperature_degC = linear_interpolation(&lin_temp,
-					data_raw_temperature);
-			sprintf((char*) tx_buffer, "Temperature [degC]:%6.2f\r\n",
-					temperature_degC);
-			tx_com(tx_buffer, strlen((char
-			const*) tx_buffer));
-
+			SENSOR_hts221_Read_Data();
 			tmp_sns_d_rdy = 0;
 		}
 
 		if (prs_sns_d_rdy == 1) {
-			memset(&data_raw_pressure, 0x00, sizeof(uint32_t));
-			lps22hh_pressure_raw_get(&dev_ctx_lps22hh, &data_raw_pressure);
-			pressure_hPa = lps22hh_from_lsb_to_hpa(data_raw_pressure);
-			sprintf((char*) tx_buffer, "Pressure [hPa]:%6.2f\r\n",
-					pressure_hPa);
-			tx_com(tx_buffer, strlen((char
-			const*) tx_buffer));
-
+			SENSOR_lps22hh_Read_Data();
 			prs_sns_d_rdy = 0;
 		}
 
 		if (retrieve_wind_speed == 1) {
-			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
-			windspeed_kph = calculateWindSpeed(timer_counter);
-
-			printf("Wind speed [kph]:%f\r\n", windspeed_kph);
-			__HAL_TIM_SET_COUNTER(&htim8, 0);
-
+			SENSOR_WindSpeed_Read_Data();
 			retrieve_wind_speed = 0;
 		}
 
-		if (retrieve_rainfall >= 5) {
-			uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
-			rainfall_mm = calculateRainfall(timer_counter);
-
-			printf("Rainfall [mm]:%f\r\n", rainfall_mm);
-			__HAL_TIM_SET_COUNTER(&htim2, 0);
-
-			retrieve_rainfall = 0;
-		}
-
 		if (retrieve_wind_dir == 1) {
-			const char *direction = determineDirection(adc_buf[0]);
-			printf("Direction: %s\r\n", direction);
-
+			SENSOR_WindDir_Read_Data();
 			retrieve_wind_dir = 0;
 		}
 
-		// Gestion de l'afficage , Interruption Tuch_Screen
+		if (retrieve_rainfall == 1) {
+			SENSOR_Rain_Read_Data();
+			retrieve_rainfall = 0;
+		}
 
+/*STILL TO ORGANIZE ----------------------------------------------------------*/
+		// SCREEN
 		if (IRQ_TS == 1) {
 			BSP_TS_GetState(&TS_State);
 			if (((80 < x) && (x < 120) && (y > 50) && (y < 90)
@@ -682,9 +352,7 @@ int main(void) {
 			HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 		}
 
-		/* USER CODE END WHILE */
-
-		/* USER CODE BEGIN 3 */
+		//SDCARD
 		//	int random[10] = {48,49,50,51,52,53,54,55,56,57};
 		//	for (int i = 0; i < 10; i++)
 		//	{
@@ -763,8 +431,13 @@ int main(void) {
 				FATFS_UnLinkDriver(SDPath);
 			}
 		}
+/*---------------------------------------------------------- STILL TO ORGANIZE*/
 
 	}
+	/* USER CODE END WHILE */
+
+	/* USER CODE BEGIN 3 */
+
 	/* USER CODE END 3 */
 }
 
@@ -818,247 +491,33 @@ void SystemClock_Config(void) {
 }
 
 /* USER CODE BEGIN 4 */
+//UART PRINTF Declaration
 PUTCHAR_PROTOTYPE {
 	HAL_UART_Transmit(&huart1, (uint8_t*) &ch, 1, 100);
 	return ch;
 }
 
-void format(void) {
-	/*##-2- Register the file system object to the FatFs module ##############*/
-	if (f_mount(&SDFatFS, (TCHAR
-	const*) SDPath, 0) != FR_OK) {
-		/* FatFs Initialization Error */
-		Error_Handler();
-	} else {
-		/*##-3- Create a FAT file system (format) on the logical drive #########*/
-		/* WARNING: Formatting the uSD card will delete all content on the device */
-		if (f_mkfs((TCHAR
-		const*) SDPath, FM_ANY, 0, workBuffer, sizeof(workBuffer)) != FR_OK) {
-			/* FatFs Format Error */
-			Error_Handler();
-		}
-	}
-}
-
-void new_log(FIL *fp, const char *filename, const char *content) {
-	FRESULT res;
-	uint32_t byteswritten; //, bytesread;
-	/*##-2- Register the file system object to the FatFs module ##############*/
-	//	      if(f_mount(&SDFatFS, (TCHAR const*)SDPath, 0) != FR_OK)
-	//	      {
-	//	        /* FatFs Initialization Error */
-	//	        Error_Handler();
-	//	      }
-	//		  else
-	//		  {
-	/*##-4- Create and Open a new text file object with write access #####*/
-	//if(f_open(&SDFile, "STM32.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	if (f_open(fp, filename, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
-		/* 'STM32.TXT' file Open for write Error */
-		Error_Handler();
-	} else {
-		/*##-5- Write data to the text file ################################*/
-		res = f_write(fp, content, strlen(content), (void*) &byteswritten);
-
-		if ((byteswritten == 0) || (res != FR_OK)) {
-			/* 'STM32.TXT' file Write or EOF Error */
-			Error_Handler();
-		} else {
-			f_close(fp);
-		}
-	}
-
-}
-
-void add_log(FIL *fp, const TCHAR *nom_file, const void *data) {
-	FRESULT res;
-	uint32_t byteswritten;
-	HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_1);
-	FATFS_LinkDriver(&SD_Driver, SDPath);
-	if (f_mount(&SDFatFS, (TCHAR
-	const*) SDPath, 0) != FR_OK) {
-		/* FatFs Initialization Error */
-		Error_Handler();
-	} else {
-		if (f_open(fp, nom_file, FA_OPEN_APPEND | FA_WRITE) != FR_OK) {
-			/* 'STM32.TXT' file Open for write Error */
-			Error_Handler();
-		} else {
-			/*##-5- Write data to the text file ################################*/
-			f_puts("  \n", fp);
-			res = f_write(fp, data, sizeof(data), (void*) &byteswritten);
-
-			if ((byteswritten == 0) || (res != FR_OK)) {
-				/* 'STM32.TXT' file Write or EOF Error */
-				Error_Handler();
-			} else {
-				/*##-6- Close the open text file #################################*/
-				f_close(fp);
-
-				/*##-7- Open the text file object with read access ###############*/
-				//if(f_open(&file1, "STM32.TXT", FA_READ) != FR_OK)
-				if (f_open(fp, "LOG_Temp.TXT", FA_READ) != FR_OK) {
-					/* 'STM32.TXT' file Open for read Error */
-					Error_Handler();
-				} else {
-					/*##-8- Read data from the text file ###########################*/
-					//					  restest = f_read(&fp, rtext, sizeof(rtext), (UINT*)&bytesread);
-					//
-					//					  if((bytesread == 0) || (restest != FR_OK))
-					//					  {
-					//						  /* 'STM32.TXT' file Read or EOF Error */
-					//						  Error_Handler();
-					//					  }
-					//					  else
-					//					  {
-					/*##-9- Close the open text file #############################*/
-					f_close(fp);
-					Flag_IRQ_Btn = 0;
-					//
-					//						  /*##-10- Compare read data with the expected data ############*/
-					//						  if((bytesread != byteswritten))
-					//						  {
-					//							  /* Read data is different from the expected data */
-					//							  Error_Handler();
-					//
-					//						  }
-					//						  else
-					//						  {
-					//						  }
-				}
+//HAL TIM PeriodElapsed Callback
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim == &htim7) {
+		printf("Timer 7 Triggered \r\n");
+		cpt_tim7++;
+		if (cpt_tim7%2 == 0){
+			start_measures = 1;
+			retrieve_wind_speed = 1;
+			retrieve_wind_dir = 1;
+			if (cpt_tim7 == 10){
+				retrieve_rainfall = 1;
+				cpt_tim7 = 0;
 			}
 		}
 	}
-	FATFS_UnLinkDriver(SDPath);
 }
 
-static void lps22hh_Init(void) {
-	lps22hh_pin_int_route_t int_route;
-
-	/* Initialize mems driver interface */
-	dev_ctx_lps22hh.write_reg = lps22hh_write;
-	dev_ctx_lps22hh.read_reg = lps22hh_read;
-	dev_ctx_lps22hh.handle = & SENSOR_BUS;
-
-	/* Wait sensor boot time */
-	platform_delay(BOOT_TIME);
-	/* Check device ID */
-	whoamI = 0;
-	int result = lps22hh_device_id_get(&dev_ctx_lps22hh, &whoamI);
-
-	if (result == 0) {
-		printf("WHO_AM_I: %d\r\n", whoamI);
-	} else {
-		printf("Error reading WHO_AM_I register\r\n");
-	}
-
-	if (whoamI != LPS22HH_ID)
-		while (1)
-			; /*manage here device not found */
-
-	/* Restore default configuration */
-	lps22hh_reset_set(&dev_ctx_lps22hh, PROPERTY_ENABLE);
-
-	do {
-		lps22hh_reset_get(&dev_ctx_lps22hh, &rst);
-	} while (rst);
-
-	lps22hh_int_notification_set(&dev_ctx_lps22hh, LPS22HH_INT_PULSED);
-
-	lps22hh_pin_int_route_get(&dev_ctx_lps22hh, &int_route);
-	int_route.drdy_pres = PROPERTY_ENABLE;
-	lps22hh_pin_int_route_set(&dev_ctx_lps22hh, &int_route);
-
-	/* Enable Block Data Update */
-	lps22hh_block_data_update_set(&dev_ctx_lps22hh, PROPERTY_ENABLE);
-	/* Set Output Data Rate */
-	lps22hh_data_rate_set(&dev_ctx_lps22hh, LPS22HH_ONE_SHOOT);
-}
-
-static int32_t lps22hh_write(void *handle, uint8_t reg, const uint8_t *bufp,
-		uint16_t len) {
-	HAL_I2C_Mem_Write(handle, LPS22HH_I2C_ADD_H, reg, I2C_MEMADD_SIZE_8BIT,
-			(uint8_t*) bufp, len, 1000);
-	return 0;
-}
-
-static int32_t lps22hh_read(void *handle, uint8_t reg, uint8_t *bufp,
-		uint16_t len) {
-	HAL_I2C_Mem_Read(handle, LPS22HH_I2C_ADD_H, reg, I2C_MEMADD_SIZE_8BIT, bufp,
-			len, 1000);
-	return 0;
-}
-
-static void hts221_Init(void) {
-	dev_ctx_hts221.write_reg = hts221_write;
-	dev_ctx_hts221.read_reg = hts221_read;
-	dev_ctx_hts221.handle = & SENSOR_BUS;
-	/* Check device ID */
-	whoamI = 0;
-	int result = hts221_device_id_get(&dev_ctx_hts221, &whoamI);
-
-	if (result == 0) {
-		printf("WHO_AM_I: %d\r\n", whoamI);
-	} else {
-		printf("Error reading WHO_AM_I register\r\n");
-	}
-
-	if (whoamI != HTS221_ID)
-		while (1)
-			; /*manage here device not found */
-
-	/* Read humidity calibration coefficient */
-	hts221_hum_adc_point_0_get(&dev_ctx_hts221, &lin_hum.x0);
-	hts221_hum_rh_point_0_get(&dev_ctx_hts221, &lin_hum.y0);
-	hts221_hum_adc_point_1_get(&dev_ctx_hts221, &lin_hum.x1);
-	hts221_hum_rh_point_1_get(&dev_ctx_hts221, &lin_hum.y1);
-
-	/* Read temperature calibration coefficient */
-	hts221_temp_adc_point_0_get(&dev_ctx_hts221, &lin_temp.x0);
-	hts221_temp_deg_point_0_get(&dev_ctx_hts221, &lin_temp.y0);
-	hts221_temp_adc_point_1_get(&dev_ctx_hts221, &lin_temp.x1);
-	hts221_temp_deg_point_1_get(&dev_ctx_hts221, &lin_temp.y1);
-
-	/* Enable Block Data Update */
-	hts221_block_data_update_set(&dev_ctx_hts221, PROPERTY_ENABLE);
-
-	/* Set Output Data Rate */
-	hts221_data_rate_set(&dev_ctx_hts221, HTS221_ONE_SHOT);
-
-	hts221_drdy_on_int_set(&dev_ctx_hts221, PROPERTY_ENABLE);
-
-	/* Device power on */
-	hts221_power_on_set(&dev_ctx_hts221, PROPERTY_ENABLE);
-}
-
-static int32_t hts221_write(void *handle, uint8_t reg, const uint8_t *bufp,
-		uint16_t len) {
-	reg |= 0x80;
-	HAL_I2C_Mem_Write(handle, HTS221_I2C_ADDRESS, reg, I2C_MEMADD_SIZE_8BIT,
-			(uint8_t*) bufp, len, 1000);
-	return 0;
-}
-
-static int32_t hts221_read(void *handle, uint8_t reg, uint8_t *bufp,
-		uint16_t len) {
-	/* Read multiple command */
-	reg |= 0x80;
-	HAL_I2C_Mem_Read(handle, HTS221_I2C_ADDRESS, reg, I2C_MEMADD_SIZE_8BIT,
-			bufp, len, 1000);
-	return 0;
-}
-
-static void tx_com(uint8_t *tx_buffer, uint16_t len) {
-	HAL_UART_Transmit(&huart1, tx_buffer, len, 1000);
-}
-
-static void platform_delay(uint32_t ms) {
-	HAL_Delay(ms);
-}
-
+//GPIO EXTI Interruption Callback
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == IRQ_TEMP_Pin) {
-		printf("Temp sensor OK\r\n");
+		printf("Temperature sensor OK\r\n");
 		tmp_sns_d_rdy = 1;
 	}
 
@@ -1075,51 +534,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	}
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (htim == &htim7) {
-		printf("Timer done\r\n");
-		start_measures = 1;
-		retrieve_wind_speed = 1;
-		retrieve_rainfall++;
-		retrieve_wind_dir = 1;
-	}
-}
-
-static float calculateWindSpeed(uint16_t switchClosures) {
-	// Conversion factor: 1.492 mph corresponds to 1 switch closure per second
-	float countsPerSecond = (float) switchClosures / 60.0;
-	// Conversion factor: 1 mph = 1.60934 kph
-	float windSpeedKph = countsPerSecond * 1.492 * 1.60934;
-
-	return windSpeedKph;
-}
-
-static float calculateRainfall(uint16_t switchClosures) {
-	// Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
-	float rainInches = (float) switchClosures * 0.011;
-	// Conversion factor: 1 inch = 25.4 mm
-	float rainMillimeters = rainInches * 25.4;
-
-	return rainMillimeters;
-}
-
-static
-const char* determineDirection(uint16_t adcValue) {
-	// Calculate the sector size based on the number of directions
-	const int numDirections = 16;
-	const int sectorSize = 4096 / numDirections;
-
-	// Calculate the sector index based on the ADC value
-	int sectorIndex = (adcValue + sectorSize / 2) / sectorSize;
-
-	// Define the compass directions
-	const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE",
-			"SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
-
-	// Map the sector index to the corresponding direction
-	return compassDirections[sectorIndex % numDirections];
-}
-
+/*STILL TO ORGANIZE ----------------------------------------------------------*/
+//SCREEN
 void Display_LCD_Init() {
 	BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, SDRAM_DEVICE_ADDR);
 	BSP_LCD_SetLayerVisible(LTDC_ACTIVE_LAYER, ENABLE);
@@ -1576,6 +992,117 @@ void Display_LCD_Button(int color) {
 		refresh = 0;
 	}
 }
+
+//SDCARD
+void format(void) {
+	/*##-2- Register the file system object to the FatFs module ##############*/
+	if (f_mount(&SDFatFS, (TCHAR
+	const*) SDPath, 0) != FR_OK) {
+		/* FatFs Initialization Error */
+		Error_Handler();
+	} else {
+		/*##-3- Create a FAT file system (format) on the logical drive #########*/
+		/* WARNING: Formatting the uSD card will delete all content on the device */
+		if (f_mkfs((TCHAR
+		const*) SDPath, FM_ANY, 0, workBuffer, sizeof(workBuffer)) != FR_OK) {
+			/* FatFs Format Error */
+			Error_Handler();
+		}
+	}
+}
+
+void new_log(FIL *fp, const char *filename, const char *content) {
+	FRESULT res;
+	uint32_t byteswritten; //, bytesread;
+	/*##-2- Register the file system object to the FatFs module ##############*/
+	//	      if(f_mount(&SDFatFS, (TCHAR const*)SDPath, 0) != FR_OK)
+	//	      {
+	//	        /* FatFs Initialization Error */
+	//	        Error_Handler();
+	//	      }
+	//		  else
+	//		  {
+	/*##-4- Create and Open a new text file object with write access #####*/
+	//if(f_open(&SDFile, "STM32.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+	if (f_open(fp, filename, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
+		/* 'STM32.TXT' file Open for write Error */
+		Error_Handler();
+	} else {
+		/*##-5- Write data to the text file ################################*/
+		res = f_write(fp, content, strlen(content), (void*) &byteswritten);
+
+		if ((byteswritten == 0) || (res != FR_OK)) {
+			/* 'STM32.TXT' file Write or EOF Error */
+			Error_Handler();
+		} else {
+			f_close(fp);
+		}
+	}
+
+}
+
+void add_log(FIL *fp, const TCHAR *nom_file, const void *data) {
+	FRESULT res;
+	uint32_t byteswritten;
+	HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_1);
+	FATFS_LinkDriver(&SD_Driver, SDPath);
+	if (f_mount(&SDFatFS, (TCHAR
+	const*) SDPath, 0) != FR_OK) {
+		/* FatFs Initialization Error */
+		Error_Handler();
+	} else {
+		if (f_open(fp, nom_file, FA_OPEN_APPEND | FA_WRITE) != FR_OK) {
+			/* 'STM32.TXT' file Open for write Error */
+			Error_Handler();
+		} else {
+			/*##-5- Write data to the text file ################################*/
+			f_puts("  \n", fp);
+			res = f_write(fp, data, sizeof(data), (void*) &byteswritten);
+
+			if ((byteswritten == 0) || (res != FR_OK)) {
+				/* 'STM32.TXT' file Write or EOF Error */
+				Error_Handler();
+			} else {
+				/*##-6- Close the open text file #################################*/
+				f_close(fp);
+
+				/*##-7- Open the text file object with read access ###############*/
+				//if(f_open(&file1, "STM32.TXT", FA_READ) != FR_OK)
+				if (f_open(fp, "LOG_Temp.TXT", FA_READ) != FR_OK) {
+					/* 'STM32.TXT' file Open for read Error */
+					Error_Handler();
+				} else {
+					/*##-8- Read data from the text file ###########################*/
+					//					  restest = f_read(&fp, rtext, sizeof(rtext), (UINT*)&bytesread);
+					//
+					//					  if((bytesread == 0) || (restest != FR_OK))
+					//					  {
+					//						  /* 'STM32.TXT' file Read or EOF Error */
+					//						  Error_Handler();
+					//					  }
+					//					  else
+					//					  {
+					/*##-9- Close the open text file #############################*/
+					f_close(fp);
+					Flag_IRQ_Btn = 0;
+					//
+					//						  /*##-10- Compare read data with the expected data ############*/
+					//						  if((bytesread != byteswritten))
+					//						  {
+					//							  /* Read data is different from the expected data */
+					//							  Error_Handler();
+					//
+					//						  }
+					//						  else
+					//						  {
+					//						  }
+				}
+			}
+		}
+	}
+	FATFS_UnLinkDriver(SDPath);
+}
+/*---------------------------------------------------------- STILL TO ORGANIZE*/
 
 /* USER CODE END 4 */
 
