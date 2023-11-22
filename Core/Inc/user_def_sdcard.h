@@ -5,11 +5,11 @@
 #include "main.h"
 
 
-/* SDCARD structures ---------------------------------------------------------*/
-
-
 /* SDCARD functions declaration ----------------------------------------------*/
-//SDCARD GEN
-
+void SDCARD_Init(void);
+void SDCARD_Actualization(void);
+void format(void);
+void new_log(FIL *, const char *, const char *);
+void add_log(FIL *, const TCHAR *, const void *);
 
 #endif /* INC_USER_DEF_SDCARD_H_ */
