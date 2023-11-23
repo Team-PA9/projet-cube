@@ -171,7 +171,7 @@ int main(void) {
 
 	//SDCARD Initialization
 	printf("\n - SDCard \r\n");
-	//SDCARD_Init(); //Comment to test without SDCard insert.
+	SDCARD_Init(); //Comment to test without SDCard insert.
 	printf("Done. \r\n");
 
 	printf("\n Initialization completed. \r\n");
