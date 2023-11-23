@@ -15,6 +15,8 @@ extern float temperature_degC;
 extern float pressure_hPa;
 extern float windspeed_kph;
 extern float rainfall_mm;
+extern uint8_t wind_direction;
+extern char* compassDirections[];
 uint8_t direction = 6;
 
 extern TS_StateTypeDef TS_State;
@@ -33,7 +35,7 @@ void Display_LCD_Init(void) {
 	BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "Menu Principal :", CENTER_MODE);
 }
 
-void Display_LCD_Button(int color) {
+void Display_LCD_Pages(int color) {
 	if (color == 1) {
 
 		if (refresh == 0) {
@@ -270,39 +272,12 @@ void Display_LCD_Button(int color) {
 		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 
-		if (direction == 0) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ N ]", CENTER_MODE);
-		} else if (direction == 1) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ NE ]", CENTER_MODE);
-		} else if (direction == 2) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ E ]", CENTER_MODE);
-		} else if (direction == 3) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ SE ]", CENTER_MODE);
-		} else if (direction == 4) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ S ]", CENTER_MODE);
-		} else if (direction == 5) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ SW ]", CENTER_MODE);
-		} else if (direction == 6) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ W ]", CENTER_MODE);
-		} else if (direction == 7) {
-			BSP_LCD_DisplayStringAt(10,
-					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-					(uint8_t*) "[ NW ]", CENTER_MODE);
-		}
+		char displayString[20];
+		sprintf(displayString, "[ %s ]", compassDirections[wind_direction]);
+		printf(displayString);
+		BSP_LCD_DisplayStringAt(10,
+				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
+				(uint8_t*) displayString, CENTER_MODE);
 		refresh = 1;
 
 	} else if (color == 6) {
@@ -358,22 +333,22 @@ void Display_LCD_Button(int color) {
 		refresh = 1;
 		if (mesure == 1) {
 			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(1);
+			Display_LCD_Pages(1);
 		} else if (mesure == 2) {
 			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(2);
+			Display_LCD_Pages(2);
 		} else if (mesure == 3) {
 			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(3);
+			Display_LCD_Pages(3);
 		} else if (mesure == 4) {
 			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(4);
+			Display_LCD_Pages(4);
 		} else if (mesure == 5) {
 			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(5);
+			Display_LCD_Pages(5);
 		} else if (mesure == 6) {
 			//			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-			Display_LCD_Button(6);
+			Display_LCD_Pages(6);
 		}
 	} else {
 
@@ -471,57 +446,57 @@ void Display_LCD_Button(int color) {
 void SCREEN_Actualization(void) {
 	BSP_TS_GetState(&TS_State);
 	if (((80 < x) && (x < 120) && (y > 50) && (y < 90) && (test_mes == 0))) {
-		Display_LCD_Button(1);
+		Display_LCD_Pages(1);
 		test_mes = 1;
 		mesure = 1;
 	} else if (((80 < x) && (x < 120) && (y > 120) && (y < 160)
 			&& (test_mes == 0))) {
-		Display_LCD_Button(2);
+		Display_LCD_Pages(2);
 		test_mes = 1;
 		mesure = 2;
 	} else if (((80 < x) && (x < 120) && (y > 190) && (y < 230)
 			&& (test_mes == 0))) {
-		Display_LCD_Button(3);
+		Display_LCD_Pages(3);
 		test_mes = 1;
 		mesure = 3;
 	} else if (((280 < x) && (x < 320) && (y > 50) && (y < 90)
 			&& (test_mes == 0))) {
-		Display_LCD_Button(4);
+		Display_LCD_Pages(4);
 		test_mes = 1;
 		mesure = 4;
 	} else if (((280 < x) && (x < 320) && (y > 120) && (y < 160)
 			&& (test_mes == 0))) {
-		Display_LCD_Button(5);
+		Display_LCD_Pages(5);
 		test_mes = 1;
 		mesure = 5;
 	} else if (((280 < x) && (x < 320) && (y > 190) && (y < 230)
 			&& (test_mes == 0))) {
-		Display_LCD_Button(6);
+		Display_LCD_Pages(6);
 		test_mes = 1;
 		mesure = 6;
 	} else {
 		if ((test_mes == 1) && (380 < x) && (x < 420) && (y > 190)
 				&& (y < 230)) {
-			Display_LCD_Button(0);
+			Display_LCD_Pages(0);
 			test_mes = 0;
 			mesure = 0;
 		} else if ((test_mes == 1) && (30 < x) && (x < 80) && (y > 190)
 				&& (y < 230)) {
-			Display_LCD_Button(7);
+			Display_LCD_Pages(7);
 
 			refresh = refresh + 1;
 			if (mesure == 1) {
-				Display_LCD_Button(1);
+				Display_LCD_Pages(1);
 			} else if (mesure == 2) {
-				Display_LCD_Button(2);
+				Display_LCD_Pages(2);
 			} else if (mesure == 3) {
-				Display_LCD_Button(3);
+				Display_LCD_Pages(3);
 			} else if (mesure == 4) {
-				Display_LCD_Button(4);
+				Display_LCD_Pages(4);
 			} else if (mesure == 5) {
-				Display_LCD_Button(5);
+				Display_LCD_Pages(5);
 			} else if (mesure == 6) {
-				Display_LCD_Button(6);
+				Display_LCD_Pages(6);
 			}
 
 			test_mes = 1;

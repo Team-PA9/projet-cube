@@ -7,17 +7,17 @@
 #include "hts221_reg.h"
 #include "lps22hh_reg.h"
 #include "user_def_sensors.h"
+#include "stdlib.h"
+#include "adc.h"
 
 /* SENSORS define ------------------------------------------------------------*/
 #define SENSOR_BUS hi2c1
 #define BOOT_TIME 5
 #define TX_BUF_DIM 1000
-#define ADC_BUF_LEN 1
 
 /* SENSORS variables ---------------------------------------------------------*/
 static uint8_t whoamI, rst;
 static uint8_t tx_buffer[TX_BUF_DIM];
-static uint16_t adc_buf[ADC_BUF_LEN];
 
 stmdev_ctx_t dev_ctx_hts221;
 stmdev_ctx_t dev_ctx_lps22hh;
@@ -33,6 +33,10 @@ float temperature_degC;
 float pressure_hPa;
 float windspeed_kph;
 float rainfall_mm;
+uint8_t wind_direction;
+
+const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE",
+"SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
 
 /* SENSORS functions ---------------------------------------------------------*/
 //SENSORS GEN
@@ -45,8 +49,13 @@ void platform_delay(uint32_t ms) {
 }
 
 void SENSORS_Start_Conversion(void) {
+	// start the sampling of the current voltage on ADC1
+	HAL_ADC_Start_IT(&hadc1);
+
 	// start the temperature conversion
 	hts221_one_shoot_trigger_set(&dev_ctx_hts221, PROPERTY_ENABLE);
+
+	// start the pressure conversion
 	uint8_t ctrl_reg2 = 0;
 	lps22hh_read_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2, 1);
 	ctrl_reg2 |= 1;
@@ -226,25 +235,32 @@ float calculateWindSpeed(uint16_t switchClosures) {
 
 //SENSOR wind direction
 void SENSOR_WindDir_Read_Data(void) {
-	const char *direction = determineDirection(adc_buf[0]);
-	printf("Wind Direction: %s\r\n", direction);
-	printf("ADC Value : %d\r\n", adc_buf[0]);
+	uint16_t buf = 0;
+	buf = HAL_ADC_GetValue(&hadc1);
+
+	wind_direction = determineDirection(buf);
+	printf("Wind Direction: %s\r\n", compassDirections[wind_direction]);
 }
 
-const char* determineDirection(uint16_t adcValue) {
-	// Calculate the sector size based on the number of directions
-	const int numDirections = 16;
-	const int sectorSize = 4096 / numDirections;
+uint8_t determineDirection(uint16_t adcValue) {
+    // Define the compass directions
+    const int numDirections = 16;
 
-	// Calculate the sector index based on the ADC value
-	int sectorIndex = (adcValue + sectorSize / 2) / sectorSize;
+    //Define the index of each direction
+    const int sectorDir[] = { 3300, 2200, 2400, 1020, 1060, 950, 1400, 1200,
+            1800, 1600, 2900, 2800, 3800, 3500, 3700, 3100 };
 
-	// Define the compass directions
-	const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE",
-			"SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
-
-	// Map the sector index to the corresponding direction
-	return compassDirections[sectorIndex % numDirections];
+    //Calculate the closest direction to the ADC value
+    int closestDir = 4096;
+    uint8_t closestIndex = 0;
+    for (int i = 0; i < numDirections; i++) {
+        int adcDiff = abs(sectorDir[i] - adcValue);
+        if (adcDiff < closestDir) {
+            closestDir = adcDiff;
+            closestIndex = i;
+        }
+    }
+    return closestIndex;
 }
 
 //SENSOR rainfall
