@@ -55,90 +55,81 @@ void SDCARD_Init(void) {
 }
 
 void SDCARD_Actualization(void) {
-		//if (save_temp_rdy == 1) // Interruption temperature
-		//{
-			// Pour la temperature
-			  char displayString[20];
-			  sprintf(displayString, "[ %6.2f 'C ]", temperature_degC);
-			  add_log(&file1, "LOG_Temp.txt", displayString, log_temperature, temperature_degC, "°C");
-			  index_temp++;
-			  char displayString2[20];
-			// Pour l'humidite
-			  sprintf(displayString2, "[ %6.2f %% ]", humidity_perc);
-			  add_log(&file6, "LOG_Humi.txt", displayString2, log_humidite, humidity_perc, "%");
-			  index_rain++;
-			  save_temp_rdy = 0;
-		//}
-		if (save_pres_rdy == 1) // Interruption pression
-		{
-			  char displayString[20];
-			  sprintf(displayString, "[ %6.2f Pa ]", pressure_hPa);
-			  add_log(&file2, "LOG_Pres.txt", displayString, log_pression, pressure_hPa, "hPa");
-			  index_pres++;
-			  save_pres_rdy = 0;
-		}
-		else if (save_wind_rdy == 1) // Interruption vitesse
-		{
-			  char displayString[20];
-			  sprintf(displayString, "[ %6.2f m/s ]", windspeed_kph);
-			  add_log(&file3, "LOG_Wspe.txt", displayString, log_vitesse, windspeed_kph, "km/h");
-			  index_wind++;
-			  save_wind_rdy = 0;
-		}
-		else if (save_rain_rdy == 1) // Interruption pluviometre
-		{
-			  char displayString[20];
-			  sprintf(displayString, "[ %6.2f mm/H ]", rainfall_mm);
-			  add_log(&file5, "LOG_Rain.txt", displayString, log_pluviometre, rainfall_mm, "mm");
-			  index_rain++;
-			  save_rain_rdy = 0;
-		}
+	if (save_temp_rdy == 1) // Interruption hts221
+			{
+		// Pour la temperature
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f 'C ]", temperature_degC);
+		add_log(&file1, "LOG_Temp.txt", displayString, log_temperature,
+				temperature_degC, "°C");
+		index_temp++;
+		char displayString2[20];
+		// Pour l'humidite
+		sprintf(displayString2, "[ %6.2f %% ]", humidity_perc);
+		add_log(&file6, "LOG_Humi.txt", displayString2, log_humidite,
+				humidity_perc, "%");
+		index_rain++;
+		save_temp_rdy = 0;
+	}
+	if (save_pres_rdy == 1) // Interruption lps22hh
+			{
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f Pa ]", pressure_hPa);
+		add_log(&file2, "LOG_Pres.txt", displayString, log_pression,
+				pressure_hPa, "hPa");
+		index_pres++;
+		save_pres_rdy = 0;
+	}
+	if (save_wind_rdy == 1) // Interruption vitesse
+			{
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f m/s ]", windspeed_kph);
+		add_log(&file3, "LOG_Wspe.txt", displayString, log_vitesse,
+				windspeed_kph, "km/h");
+		index_wind++;
+		save_wind_rdy = 0;
+	}
+	if (save_rain_rdy == 1) // Interruption pluviometre
+			{
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f mm/H ]", rainfall_mm);
+		add_log(&file5, "LOG_Rain.txt", displayString, log_pluviometre,
+				rainfall_mm, "mm");
+		index_rain++;
+		save_rain_rdy = 0;
+	}
 
 }
 
-void new_log(FIL *fp, const char *filename, const char *content){
+void new_log(FIL *fp, const char *filename, const char *content) {
 	FRESULT res;
 	uint32_t byteswritten;
-	if(f_open(fp, filename, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-	{
-	Error_Handler();
-	}
-	else
-	{
-	res = f_write(fp, content, strlen(content), (void *)&byteswritten);
-
-	if((byteswritten == 0) || (res != FR_OK))
-	{
+	if (f_open(fp, filename, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
 		Error_Handler();
-	}
-	else
-	{
-		f_close(fp);
-	}
+	} else {
+		res = f_write(fp, content, strlen(content), (void*) &byteswritten);
+
+		if ((byteswritten == 0) || (res != FR_OK)) {
+			Error_Handler();
+		} else {
+			f_close(fp);
+		}
 	}
 }
 
-void add_log(FIL *fp, const char *filename, char *data, float tableau[], float value, const char *unit) {
-	FRESULT res;
-	uint32_t byteswritten;
+void add_log(FIL *fp, const char *filename, char *data, float tableau[],
+		float value, const char *unit) {
 	FATFS_LinkDriver(&SD_Driver, SDPath);
-	if (f_mount(&SDFatFS, (TCHAR
-	const*) SDPath, 0) != FR_OK) {
+	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
 		Error_Handler();
 	} else {
 		if (f_open(fp, filename, FA_OPEN_APPEND | FA_WRITE) != FR_OK) {
 			Error_Handler();
 		} else {
 			f_puts("\n", fp);
-			res = f_write(fp, data, sizeof(data), (void*) &byteswritten);
-			f_puts(unit, fp);
+			f_puts(data, fp);
 			tableau[-1] = value;
-
-			if ((byteswritten == 0) || (res != FR_OK)) {
-				Error_Handler();
-			} else {
-				f_close(fp);
-			}
+			f_close(fp);
 		}
 	}
 	FATFS_UnLinkDriver(SDPath);

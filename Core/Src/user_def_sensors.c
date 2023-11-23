@@ -228,6 +228,7 @@ float calculateWindSpeed(uint16_t switchClosures) {
 void SENSOR_WindDir_Read_Data(void) {
 	const char *direction = determineDirection(adc_buf[0]);
 	printf("Wind Direction: %s\r\n", direction);
+	printf("ADC Value : %d\r\n", adc_buf[0]);
 }
 
 const char* determineDirection(uint16_t adcValue) {
