@@ -274,7 +274,6 @@ void Display_LCD_Pages(int color) {
 
 		char displayString[20];
 		sprintf(displayString, "[ %s ]", compassDirections[wind_direction]);
-		printf(displayString);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
 				(uint8_t*) displayString, CENTER_MODE);
