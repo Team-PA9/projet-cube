@@ -44,10 +44,6 @@
 #else
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE * f)
 #endif /* __GNUC__ */
-
-//SENSORS Define
-#define ADC_BUF_LEN 1 //Define twice, "main"+"user_def_sensors".
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -69,7 +65,6 @@ volatile uint8_t prs_sns_d_rdy = 0;
 volatile uint8_t retrieve_wind_speed = 0;
 volatile uint8_t retrieve_rainfall = 0;
 volatile uint8_t retrieve_wind_dir = 0;
-static uint16_t adc_buf[ADC_BUF_LEN]; //Define twice, "main"+"user_def_sensors".
 
 //SCREEN Variables
 volatile uint8_t cpt_inactivity = 0;
@@ -151,7 +146,6 @@ int main(void) {
 	printf("\n - Sensors \r\n");
 	HAL_TIM_Base_Start(&htim8);
 	HAL_TIM_Base_Start(&htim2);
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adc_buf, ADC_BUF_LEN);
 	SENSOR_lps22hh_Init();
 	SENSOR_hts221_Init();
 	printf("Done. \r\n");
@@ -160,7 +154,7 @@ int main(void) {
 	printf("\n - Screen \r\n");
 	BSP_LCD_Init();
 	Display_LCD_Init();
-	Display_LCD_Button(0);
+	Display_LCD_Pages(0);
 	HAL_GPIO_WritePin(GLED_GPIO_Port, GLED_Pin, 1);
 	HAL_GPIO_WritePin(RLED_GPIO_Port, RLED_Pin, 0);
 	HAL_GPIO_WritePin(BLED_GPIO_Port, BLED_Pin, 0);
@@ -355,7 +349,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		if (cpt_measures % 2 == 0) {
 			start_measures = 1;
 			retrieve_wind_speed = 1;
-			retrieve_wind_dir = 1;
 			if (cpt_measures == 10) {
 				retrieve_rainfall = 1;
 			}
@@ -387,6 +380,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == BTN2_Pin) {
 		IRQ_BTN2 = 1;
 	}
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+	retrieve_wind_dir = 1;
 }
 
 /* USER CODE END 4 */
