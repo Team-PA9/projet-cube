@@ -4,7 +4,6 @@
 /* SCREEN includes -----------------------------------------------------------*/
 #include "main.h"
 
-
 /* SCREEN functions declaration ----------------------------------------------*/
 void Display_LCD_Init(void);
 void Display_LCD_Pages(int);

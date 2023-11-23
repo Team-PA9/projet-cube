@@ -35,8 +35,8 @@ float windspeed_kph;
 float rainfall_mm;
 uint8_t wind_direction;
 
-const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE",
-"SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
+const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE",
+		"SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
 
 /* SENSORS functions ---------------------------------------------------------*/
 //SENSORS GEN
@@ -243,24 +243,24 @@ void SENSOR_WindDir_Read_Data(void) {
 }
 
 uint8_t determineDirection(uint16_t adcValue) {
-    // Define the compass directions
-    const int numDirections = 16;
+	// Define the compass directions
+	const int numDirections = 16;
 
-    //Define the index of each direction
-    const int sectorDir[] = { 3300, 2200, 2400, 1020, 1060, 950, 1400, 1200,
-            1800, 1600, 2900, 2800, 3800, 3500, 3700, 3100 };
+	//Define the index of each direction
+	const int sectorDir[] = { 3300, 2200, 2400, 1020, 1060, 950, 1400, 1200,
+			1800, 1600, 2900, 2800, 3800, 3500, 3700, 3100 };
 
-    //Calculate the closest direction to the ADC value
-    int closestDir = 4096;
-    uint8_t closestIndex = 0;
-    for (int i = 0; i < numDirections; i++) {
-        int adcDiff = abs(sectorDir[i] - adcValue);
-        if (adcDiff < closestDir) {
-            closestDir = adcDiff;
-            closestIndex = i;
-        }
-    }
-    return closestIndex;
+	//Calculate the closest direction to the ADC value
+	int closestDir = 4096;
+	uint8_t closestIndex = 0;
+	for (int i = 0; i < numDirections; i++) {
+		int adcDiff = abs(sectorDir[i] - adcValue);
+		if (adcDiff < closestDir) {
+			closestDir = adcDiff;
+			closestIndex = i;
+		}
+	}
+	return closestIndex;
 }
 
 //SENSOR rainfall

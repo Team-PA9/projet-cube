@@ -16,7 +16,7 @@ extern float pressure_hPa;
 extern float windspeed_kph;
 extern float rainfall_mm;
 extern uint8_t wind_direction;
-extern char* compassDirections[];
+extern char *compassDirections[];
 uint8_t direction = 6;
 
 extern TS_StateTypeDef TS_State;
