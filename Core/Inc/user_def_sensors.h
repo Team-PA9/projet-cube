@@ -39,7 +39,7 @@ float calculateWindSpeed(uint16_t);
 
 //SENSOR wind direction
 void SENSOR_WindDir_Read_Data(void);
-const char* determineDirection(uint16_t);
+uint8_t determineDirection(uint16_t);
 
 //SENSOR rainfall
 void SENSOR_Rain_Read_Data(void);
