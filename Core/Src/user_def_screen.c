@@ -9,12 +9,13 @@
 uint8_t test_mes = 0;
 uint8_t refresh = 0;
 uint8_t mesure = 0;
-char *temperature = "12345";
-char *Humidité = "12345";
-char *Pression = "1234567";
-char *vitesse = "12345";
+
+extern float humidity_perc;
+extern float temperature_degC;
+extern float pressure_hPa;
+extern float windspeed_kph;
+extern float rainfall_mm;
 uint8_t direction = 6;
-char *Pluvio = "12345";
 
 extern TS_StateTypeDef TS_State;
 extern uint16_t x, y;
@@ -72,15 +73,11 @@ void Display_LCD_Button(int color) {
 					BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 4),
 					(uint8_t*) "HOME", RIGHT_MODE);
 		}
-
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f 'C ]", temperature_degC);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         'C ]", CENTER_MODE);
-
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &temperature, CENTER_MODE);
-
+				(uint8_t*) displayString, CENTER_MODE);
 		refresh = 1;
 
 	} else if (color == 2) {
@@ -125,14 +122,11 @@ void Display_LCD_Button(int color) {
 
 		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f %% ]", humidity_perc);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         % ]", CENTER_MODE);
-
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &Humidité, CENTER_MODE);
-
+				(uint8_t*) displayString, CENTER_MODE);
 		refresh = 1;
 
 	} else if (color == 3) {
@@ -178,14 +172,13 @@ void Display_LCD_Button(int color) {
 
 		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f Pa ]", pressure_hPa);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[            Pa ]", CENTER_MODE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &Pression, CENTER_MODE);
-
+				(uint8_t*) displayString, CENTER_MODE);
 		refresh = 1;
+
 	} else if (color == 4) {
 		if (refresh == 0) {
 			// Titre de la mesure
@@ -226,12 +219,11 @@ void Display_LCD_Button(int color) {
 
 		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f m/s ]", windspeed_kph);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         m/s ]", CENTER_MODE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &vitesse, CENTER_MODE);
+				(uint8_t*) displayString, CENTER_MODE);
 		refresh = 1;
 
 	} else if (color == 5) {
@@ -355,12 +347,11 @@ void Display_LCD_Button(int color) {
 
 		BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+		char displayString[20];
+		sprintf(displayString, "[ %6.2f mm/H ]", rainfall_mm);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) "[         mm/H ]", CENTER_MODE);
-		BSP_LCD_DisplayStringAt(10,
-				BSP_LCD_GetYSize() - (1 * BSP_LCD_GetYSize() / 2),
-				(uint8_t*) &Pluvio, CENTER_MODE);
+				(uint8_t*) displayString, CENTER_MODE);
 		refresh = 1;
 
 	} else if (color == 7) {

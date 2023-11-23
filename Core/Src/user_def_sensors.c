@@ -28,11 +28,11 @@ static int16_t data_raw_humidity;
 static int16_t data_raw_temperature;
 static uint32_t data_raw_pressure;
 
-static float humidity_perc;
-static float temperature_degC;
-static float pressure_hPa;
-static float windspeed_kph;
-static float rainfall_mm;
+float humidity_perc;
+float temperature_degC;
+float pressure_hPa;
+float windspeed_kph;
+float rainfall_mm;
 
 /* SENSORS functions ---------------------------------------------------------*/
 //SENSORS GEN
