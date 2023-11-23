@@ -27,6 +27,8 @@ extern float temperature_degC;
 extern float pressure_hPa;
 extern float windspeed_kph;
 extern float rainfall_mm;
+extern uint8_t wind_direction;
+extern char *compassDirections[];
 
 extern uint8_t save_temp_rdy;
 extern uint8_t save_pres_rdy;
@@ -44,10 +46,10 @@ void SDCARD_Init(void) {
 			Error_Handler(); /* FatFs Format Error */
 		} else {
 			new_log(&file1, "LOG_Temp.txt", "Log temperature");
-			new_log(&file2, "LOG_Pres.txt", "Log pressure");
-			new_log(&file3, "LOG_WDir.txt", "Log wind direction");
-			new_log(&file4, "LOG_WSpe.txt", "Log wind speed");
-			new_log(&file5, "LOG_Rain.txt", "Log rainfall");
+			new_log(&file2, "LOG_Pres.txt", "Log pression");
+			new_log(&file3, "LOG_WDir.txt", "Log direction vent");
+			new_log(&file4, "LOG_WSpe.txt", "Log vitesse vent");
+			new_log(&file5, "LOG_Rain.txt", "Log pluviometrie");
 			new_log(&file6, "LOG_Humi.txt", "Log humidite");
 		}
 	}
@@ -55,8 +57,8 @@ void SDCARD_Init(void) {
 }
 
 void SDCARD_Actualization(void) {
-	if (save_temp_rdy == 1) // Interruption hts221
-			{
+	// Interruption hts221
+	if (save_temp_rdy == 1) {
 		// Pour la temperature
 		char displayString[20];
 		sprintf(displayString, "[ %6.2f 'C ]", temperature_degC);
@@ -71,8 +73,9 @@ void SDCARD_Actualization(void) {
 		index_rain++;
 		save_temp_rdy = 0;
 	}
-	if (save_pres_rdy == 1) // Interruption lps22hh
-			{
+
+	// Interruption lps22hh
+	if (save_pres_rdy == 1) {
 		char displayString[20];
 		sprintf(displayString, "[ %6.2f Pa ]", pressure_hPa);
 		add_log(&file2, "LOG_Pres.txt", displayString, log_pression,
@@ -80,8 +83,9 @@ void SDCARD_Actualization(void) {
 		index_pres++;
 		save_pres_rdy = 0;
 	}
-	if (save_wind_rdy == 1) // Interruption vitesse
-			{
+
+	// Interruption vitesse
+	if (save_wind_rdy == 1) {
 		char displayString[20];
 		sprintf(displayString, "[ %6.2f m/s ]", windspeed_kph);
 		add_log(&file3, "LOG_Wspe.txt", displayString, log_vitesse,
@@ -89,14 +93,24 @@ void SDCARD_Actualization(void) {
 		index_wind++;
 		save_wind_rdy = 0;
 	}
-	if (save_rain_rdy == 1) // Interruption pluviometre
-			{
+
+	// Interruption pluviometre
+	if (save_rain_rdy == 1) {
 		char displayString[20];
 		sprintf(displayString, "[ %6.2f mm/H ]", rainfall_mm);
 		add_log(&file5, "LOG_Rain.txt", displayString, log_pluviometre,
 				rainfall_mm, "mm");
 		index_rain++;
 		save_rain_rdy = 0;
+	}
+
+	// Interruption girouette
+	if (save_dir_rdy == 1) {
+		char displayString[20];
+		sprintf(displayString, "[ %s ]", compassDirections[wind_direction]);
+		add_log(&file5, "LOG_WDir.txt", displayString, log_pluviometre, sprintf("%s", compassDirections[wind_direction]), "");
+		index_dir++;
+		save_dir_rdy = 0;
 	}
 
 }
@@ -117,8 +131,7 @@ void new_log(FIL *fp, const char *filename, const char *content) {
 	}
 }
 
-void add_log(FIL *fp, const char *filename, char *data, float tableau[],
-		float value, const char *unit) {
+void add_log(FIL *fp, const char *filename, char *data, float tableau[], float value, const char *unit) {
 	FATFS_LinkDriver(&SD_Driver, SDPath);
 	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
 		Error_Handler();
