@@ -86,7 +86,6 @@ uint8_t save_wind_rdy = 0;
 uint8_t save_dir_rdy = 0;
 uint8_t save_rain_rdy = 0;
 
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -201,37 +200,33 @@ int main(void) {
 				}
 				//Get & Print a measure from every sensors
 				if (tmp_sns_d_rdy == 1) {
-					printf("Temperature sensor OK\r\n");
+					printf("Temperature & Humidity sensor OK\r\n");
 					SENSOR_hts221_Read_Data();
-					tmp_sns_d_rdy = 0;
 					save_temp_rdy = 1;
+					tmp_sns_d_rdy = 0;
 				}
 				if (prs_sns_d_rdy == 1) {
 					printf("Pressure sensor OK\r\n");
 					SENSOR_lps22hh_Read_Data();
-					prs_sns_d_rdy = 0;
 					save_pres_rdy = 1;
+					prs_sns_d_rdy = 0;
 				}
 				if (retrieve_wind_speed == 1) {
 					SENSOR_WindSpeed_Read_Data();
-					retrieve_wind_speed = 0;
 					save_wind_rdy = 1;
+					retrieve_wind_speed = 0;
 				}
 				if (retrieve_wind_dir == 1) {
 					SENSOR_WindDir_Read_Data();
-					retrieve_wind_dir = 0;
 					save_dir_rdy = 1;
+					retrieve_wind_dir = 0;
 				}
 				if (retrieve_rainfall == 1) {
 					SENSOR_Rain_Read_Data();
 					cpt_measures = 0;
-					retrieve_rainfall = 0;
 					save_rain_rdy = 1;
+					retrieve_rainfall = 0;
 				}
-
-				// Add every measure from a sensor to the correspondent array.
-				/* Function adding value to array -- TO DO INSIDE .h.c of SDCard --
-				 */
 
 				//Screen Management & Actualization
 				/* Need to separate SCREEN_Actualization into SwCa of Pages and
@@ -240,7 +235,8 @@ int main(void) {
 				 */
 				SCREEN_Actualization();
 
-				//Save every last measure from a sensor in SDCard.
+				// Add every measure from a sensor to the correspondent array.
+				// Save every last measure from a sensor in SDCard.
 				SDCARD_Actualization(); //Comment to test without SDCard insert.
 			}
 
@@ -360,10 +356,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 			start_measures = 1;
 			retrieve_wind_speed = 1;
 			retrieve_wind_dir = 1;
+			if (cpt_measures == 10) {
+				retrieve_rainfall = 1;
+			}
 		}
-		if (cpt_measures == 10) {
-			retrieve_rainfall = 1;
-		}
+
 		cpt_inactivity++;
 
 		printf("Measure CPT : %d \r\n", cpt_measures);
