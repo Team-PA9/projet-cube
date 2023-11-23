@@ -8,7 +8,7 @@
 /* SDCARD functions declaration ----------------------------------------------*/
 void SDCARD_Init(void);
 void SDCARD_Actualization(void);
-void new_log(FIL* fp, const char *filename, const char *content);
-void add_log(FIL *fp, const char *filename, const char *data, const char *tableau[], const char *unit);
+void new_log(FIL *fp, const char *filename, const char *content);
+void add_log(FIL *fp, const char *filename, char *data, float tableau[], float value, const char *unit);
 
 #endif /* INC_USER_DEF_SDCARD_H_ */
