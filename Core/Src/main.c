@@ -79,6 +79,14 @@ volatile uint8_t IRQ_TS = 0;
 TS_StateTypeDef TS_State;
 uint16_t x, y;
 
+//SDCARD Variables
+uint8_t save_temp_rdy = 0;
+uint8_t save_pres_rdy = 0;
+uint8_t save_wind_rdy = 0;
+uint8_t save_dir_rdy = 0;
+uint8_t save_rain_rdy = 0;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -171,7 +179,7 @@ int main(void) {
 
 	//SDCARD Initialization
 	printf("\n - SDCard \r\n");
-	//SDCARD_Init(); //Comment to test without SDCard insert.
+	SDCARD_Init(); //Comment to test without SDCard insert.
 	printf("Done. \r\n");
 
 	printf("\n Initialization completed. \r\n");
@@ -196,24 +204,29 @@ int main(void) {
 					printf("Temperature sensor OK\r\n");
 					SENSOR_hts221_Read_Data();
 					tmp_sns_d_rdy = 0;
+					save_temp_rdy = 1;
 				}
 				if (prs_sns_d_rdy == 1) {
 					printf("Pressure sensor OK\r\n");
 					SENSOR_lps22hh_Read_Data();
 					prs_sns_d_rdy = 0;
+					save_pres_rdy = 1;
 				}
 				if (retrieve_wind_speed == 1) {
 					SENSOR_WindSpeed_Read_Data();
 					retrieve_wind_speed = 0;
+					save_wind_rdy = 1;
 				}
 				if (retrieve_wind_dir == 1) {
 					SENSOR_WindDir_Read_Data();
 					retrieve_wind_dir = 0;
+					save_dir_rdy = 1;
 				}
 				if (retrieve_rainfall == 1) {
 					SENSOR_Rain_Read_Data();
 					cpt_measures = 0;
 					retrieve_rainfall = 0;
+					save_rain_rdy = 1;
 				}
 
 				// Add every measure from a sensor to the correspondent array.
@@ -228,7 +241,7 @@ int main(void) {
 				SCREEN_Actualization();
 
 				//Save every last measure from a sensor in SDCard.
-				//SDCARD_Actualization(); //Comment to test without SDCard insert.
+				SDCARD_Actualization(); //Comment to test without SDCard insert.
 			}
 
 			//STEP 3 : IRQ Screen triggered
