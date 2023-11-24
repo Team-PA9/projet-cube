@@ -18,6 +18,7 @@ extern float rainfall_mm;
 extern uint8_t wind_direction;
 extern char *compassDirections[];
 uint8_t direction = 6;
+int currentScreen = 0;
 
 extern TS_StateTypeDef TS_State;
 extern uint16_t x, y;
@@ -37,8 +38,8 @@ void Display_LCD_Init(void) {
 
 void Display_LCD_Pages(int color) {
 	if (color == 1) {
-
 		if (refresh == 0) {
+			currentScreen = 1;
 			// Titre de la mesure
 
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
@@ -84,6 +85,7 @@ void Display_LCD_Pages(int color) {
 
 	} else if (color == 2) {
 		if (refresh == 0) {
+			currentScreen = 2;
 			// Titre de la mesure
 
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
@@ -133,6 +135,7 @@ void Display_LCD_Pages(int color) {
 
 	} else if (color == 3) {
 		if (refresh == 0) {
+			currentScreen = 3;
 			// Titre de la mesure
 
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
@@ -183,6 +186,7 @@ void Display_LCD_Pages(int color) {
 
 	} else if (color == 4) {
 		if (refresh == 0) {
+			currentScreen = 4;
 			// Titre de la mesure
 
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
@@ -230,6 +234,7 @@ void Display_LCD_Pages(int color) {
 
 	} else if (color == 5) {
 		if (refresh == 0) {
+			currentScreen = 5;
 			// Titre de la mesure
 
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
@@ -281,6 +286,7 @@ void Display_LCD_Pages(int color) {
 
 	} else if (color == 6) {
 		if (refresh == 0) {
+			currentScreen = 6;
 			// Titre de la mesure
 
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
@@ -350,7 +356,7 @@ void Display_LCD_Pages(int color) {
 			Display_LCD_Pages(6);
 		}
 	} else {
-
+		currentScreen = 0;
 		// Titre
 
 		BSP_LCD_Clear(LCD_COLOR_BLACK);
