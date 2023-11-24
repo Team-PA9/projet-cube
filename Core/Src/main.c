@@ -81,6 +81,7 @@ uint8_t save_wind_rdy = 0;
 uint8_t save_dir_rdy = 0;
 uint8_t save_rain_rdy = 0;
 
+extern int currentScreen;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -198,28 +199,33 @@ int main(void) {
 					SENSOR_hts221_Read_Data();
 					save_temp_rdy = 1;
 					tmp_sns_d_rdy = 0;
+					Display_LCD_Pages(currentScreen);
 				}
 				if (prs_sns_d_rdy == 1) {
 					printf("Pressure sensor OK\r\n");
 					SENSOR_lps22hh_Read_Data();
 					save_pres_rdy = 1;
 					prs_sns_d_rdy = 0;
+					Display_LCD_Pages(currentScreen);
 				}
 				if (retrieve_wind_speed == 1) {
 					SENSOR_WindSpeed_Read_Data();
 					save_wind_rdy = 1;
 					retrieve_wind_speed = 0;
+					Display_LCD_Pages(currentScreen);
 				}
 				if (retrieve_wind_dir == 1) {
 					SENSOR_WindDir_Read_Data();
 					save_dir_rdy = 1;
 					retrieve_wind_dir = 0;
+					Display_LCD_Pages(currentScreen);
 				}
 				if (retrieve_rainfall == 1) {
 					SENSOR_Rain_Read_Data();
 					cpt_measures = 0;
 					save_rain_rdy = 1;
 					retrieve_rainfall = 0;
+					Display_LCD_Pages(currentScreen);
 				}
 
 				//Screen Management & Actualization
@@ -372,6 +378,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		prs_sns_d_rdy = 1;
 	}
 	if (GPIO_Pin == IRQ_TS_Pin) {
+		cpt_inactivity = 0;
 		BSP_TS_GetState(&TS_State);
 		x = TS_State.touchX[0];
 		y = TS_State.touchY[0];
