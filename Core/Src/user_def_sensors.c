@@ -14,6 +14,7 @@
 #define SENSOR_BUS hi2c1
 #define BOOT_TIME 5
 #define TX_BUF_DIM 1000
+#define MS_PER_HOUR 3600000 // 1 hour = 3600000 milliseconds
 
 /* SENSORS variables ---------------------------------------------------------*/
 static uint8_t whoamI, rst;
@@ -27,6 +28,8 @@ lin_t lin_temp;
 static int16_t data_raw_humidity;
 static int16_t data_raw_temperature;
 static uint32_t data_raw_pressure;
+
+static uint32_t lastInterruptTime = 0;
 
 float humidity_perc;
 float temperature_degC;
@@ -48,14 +51,15 @@ void platform_delay(uint32_t ms) {
 	HAL_Delay(ms);
 }
 
-void SENSORS_Start_Conversion(void) {
-	// start the sampling of the current voltage on ADC1
+void SENSORS_Start_WDir_Conversion(void) {
 	HAL_ADC_Start_IT(&hadc1);
+}
 
-	// start the temperature conversion
+void SENSORS_Start_hts221_Conversion(void) {
 	hts221_one_shoot_trigger_set(&dev_ctx_hts221, PROPERTY_ENABLE);
+}
 
-	// start the pressure conversion
+void SENSORS_Start_lps22hh_Conversion(void) {
 	uint8_t ctrl_reg2 = 0;
 	lps22hh_read_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2, 1);
 	ctrl_reg2 |= 1;
@@ -234,7 +238,7 @@ float calculateWindSpeed(uint16_t switchClosures) {
 }
 
 //SENSOR wind direction
-void SENSOR_WindDir_Read_Data(void) {
+void SENSOR_WDir_Read_Data(void) {
 	uint16_t buf = 0;
 	buf = HAL_ADC_GetValue(&hadc1);
 
@@ -263,20 +267,25 @@ uint8_t determineDirection(uint16_t adcValue) {
 	return closestIndex;
 }
 
-//SENSOR rainfall
 void SENSOR_Rain_Read_Data(void) {
-	uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim2);
-	rainfall_mm = calculateRainfall(timer_counter);
+    uint32_t currentTime = HAL_GetTick();
+    uint32_t elapsedTime = currentTime - lastInterruptTime;
 
-	printf("Rainfall [mm]: %f\r\n", rainfall_mm);
-	__HAL_TIM_SET_COUNTER(&htim2, 0);
+    float rainfall_mm_per_hour = calculateRainfall(elapsedTime);
+
+    printf("Rainfall [mm/H]: %f\r\n", rainfall_mm_per_hour);
+
+    lastInterruptTime = currentTime;
 }
 
-float calculateRainfall(uint16_t switchClosures) {
-	// Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
-	float rainInches = (float) switchClosures * 0.011;
-	// Conversion factor: 1 inch = 25.4 mm
-	float rainMillimeters = rainInches * 25.4;
+float calculateRainfall(uint32_t elapsedTime) {
+    // Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
+    float rainInches = (float)elapsedTime * 0.011 / 1000.0; // Convert milliseconds to seconds
+    // Conversion factor: 1 inch = 25.4 mm
+    float rainMillimeters = rainInches * 25.4;
 
-	return rainMillimeters;
+    // Calculate rainfall rate in mm per hour
+    float rainfall_mm_per_hour = rainMillimeters / (elapsedTime / (float)MS_PER_HOUR);
+
+    return rainfall_mm_per_hour;
 }

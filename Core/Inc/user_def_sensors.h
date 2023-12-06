@@ -18,7 +18,9 @@ typedef struct {
 //SENSORS GEN
 void tx_com(uint8_t*, uint16_t);
 void platform_delay(uint32_t);
-void SENSORS_Start_Conversion(void);
+void SENSORS_Start_WDir_Conversion(void);
+void SENSORS_Start_hts221_Conversion(void);
+void SENSORS_Start_lps22hh_Conversion(void);
 float linear_interpolation(lin_t*, int16_t);
 
 //SENSOR hts221
@@ -38,7 +40,7 @@ void SENSOR_WindSpeed_Read_Data(void);
 float calculateWindSpeed(uint16_t);
 
 //SENSOR wind direction
-void SENSOR_WindDir_Read_Data(void);
+void SENSOR_WDir_Read_Data(void);
 uint8_t determineDirection(uint16_t);
 
 //SENSOR rainfall
