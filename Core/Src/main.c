@@ -54,24 +54,23 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-//GEN Variables
-volatile uint8_t IRQs = 0;
 
 //SENSORS Variables
-volatile uint8_t Mesure = 0;
-volatile uint8_t DataTHRdy = 0;
-volatile uint8_t DataPressRdy = 0;
-volatile uint8_t FlagPluvio = 0;
-volatile uint8_t DataWDirRdy = 0;
+volatile uint8_t Flag_Measure = 0;
+volatile uint8_t Flag_DataTHRdy = 0;
+volatile uint8_t Flag_DataPressRdy = 0;
+volatile uint8_t Flag_Rainfall = 0;
+volatile uint8_t Flag_DataWDirRdy = 0;
 uint8_t MesCpt = 0;
 
 //SCREEN Variables
 volatile uint8_t cpt_inactivity = 0;
 volatile uint8_t SCREEN_State = 0;
-volatile uint8_t IRQ_BTN2 = 0;
-volatile uint8_t IRQ_TS = 0;
+volatile uint8_t Flag_UsBtn2 = 0;
+volatile uint8_t Flag_TS = 0;
 TS_StateTypeDef TS_State;
-uint16_t x, y;
+uint16_t TS_x, TS_y, TS_past_x, TS_past_y;
+extern int currentScreen;
 
 //SDCARD Variables
 uint8_t save_temp_rdy = 0;
@@ -80,7 +79,6 @@ uint8_t save_wind_rdy = 0;
 uint8_t save_dir_rdy = 0;
 uint8_t save_rain_rdy = 0;
 
-extern int currentScreen;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,7 +104,7 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick.*/
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -135,16 +133,12 @@ int main(void)
   MX_LTDC_Init();
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
-	//STEP 0 : Initialization
+	// --- STEP N°0 : Initialization -------------------------------------------
 	printf("Initialization started : \r\n");
-
-	//GEN PROJECT TIMER Initialization
-	printf("\n - General Project Timer \r\n");
-	HAL_TIM_Base_Start_IT(&htim7);
-	printf("Done. \r\n");
 
 	//SENSORS Initialization
 	printf("\n - Sensors \r\n");
+	HAL_TIM_Base_Start_IT(&htim7);
 	HAL_TIM_Base_Start(&htim8);
 	HAL_TIM_Base_Start(&htim2);
 	SENSOR_lps22hh_Init();
@@ -167,8 +161,8 @@ int main(void)
 	BSP_TS_ResetTouchData(&TS_State);
 	BSP_TS_ITConfig();
 	BSP_TS_ITClear();
-	x = TS_State.touchX[0];
-	y = TS_State.touchY[0];
+	TS_x = TS_State.touchX[0];
+	TS_y = TS_State.touchY[0];
 	printf("Done. \r\n");
 
 	//SDCARD Initialization
@@ -182,107 +176,156 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	// --- STEP N°1 : Waiting for any Flag -------------------------------------
 	while (1) {
-		//STEP 1 : Waiting for IRQs
 
-		if (IRQs == 1) {
-			//STEP 2 : IRQ Measures
-			if (Mesure == 1) {
-				switch(MesCpt) {
-				case 0:
-					// Humidité / Température
-					SENSORS_Start_hts221_Conversion();
-					MesCpt = 1;
-					Mesure = 0;
-					break;
-				case 1:
-					// Pression atmosphérique
-					SENSORS_Start_lps22hh_Conversion();
-					MesCpt = 2;
-					Mesure = 0;
-					break;
-				case 2:
-                    SENSOR_WindSpeed_Read_Data();
-					// Vitesse du vent
-					MesCpt = 3;
-					Mesure = 0;
-					break;
-				case 3:
-					SENSORS_Start_WDir_Conversion();
-					// Direction du vent
-					MesCpt = 0;
-					Mesure = 0;
-					break;
-				}
-				//Get & Print a measure from every sensors
-				if (DataTHRdy == 1) {
-					printf("Temperature & Humidity sensor OK\r\n");
-					SENSOR_hts221_Read_Data();
-					save_temp_rdy = 1;
-					DataTHRdy = 0;
-					Display_LCD_Pages(currentScreen);
-				}
-				if (DataPressRdy == 1) {
-					printf("Pressure sensor OK\r\n");
-					SENSOR_lps22hh_Read_Data();
-					save_pres_rdy = 1;
-					DataPressRdy = 0;
-					Display_LCD_Pages(currentScreen);
-				}
-				if (DataWDirRdy == 1) {
-					SENSOR_WDir_Read_Data();
-					DataWDirRdy = 0;
-				}
+		// --- STEP N°10 : Flag TS ---------------------------------------------
+		if (Flag_TS == 1) {
+			printf("\n - TouchScreen Triggered \r\n");
+			TS_past_x = TS_x;
+			TS_past_y = TS_y;
+			BSP_TS_GetState(&TS_State);
+			TS_x = TS_State.touchX[0];
+			TS_y = TS_State.touchY[0];
 
-				//Screen Management & Actualization
-				/* Need to separate SCREEN_Actualization into SwCa of Pages and
-				 * Measures actualizations on the selected screen.
-				 * -- TO DO INSIDE .h.c of Screen --
-				 */
+			// --- STEP N°11 : Power ON Screen
+			if (SCREEN_State == 0) {
+				printf("Screen ON \r\n");
+				Display_LCD_ON();
+				SCREEN_State = 1;
+			}
+			// --- STEP N°12 : Compare TS with previous TS data
+			else if (SCREEN_State == 1) {
+
+				// --- STEP N°13 : Refresh Screen
+				if (TS_x != TS_past_x || TS_y != TS_past_y) {
 				SCREEN_Actualization();
-
-				// Add every measure from a sensor to the correspondent array.
-				// Save every last measure from a sensor in SDCard.
-				// SDCARD_Actualization(); //Comment to test without SDCard insert.
-			}
-
-			//STEP 3 : IRQ Screen triggered
-			if (SCREEN_State == 1) {
-				if (IRQ_TS == 1) {
-					printf("\n - TouchScreen Triggered \r\n");
-					SCREEN_Actualization();
-					IRQ_TS = 0;
-				} else if (cpt_inactivity >= 3) {
-					printf("Screen OFF \r\n");
-					BSP_LCD_DisplayOff();
-					HAL_GPIO_WritePin(GLED_GPIO_Port, GLED_Pin, 0);
-					HAL_GPIO_WritePin(RLED_GPIO_Port, RLED_Pin, 1);
-					cpt_inactivity = 0;
-					SCREEN_State = 0;
-				}
-			} else if (SCREEN_State == 0) {
-				cpt_inactivity = 0;
-				if ((IRQ_BTN2 == 1) || (IRQ_TS == 1)) {
-					if (IRQ_BTN2 == 1) {
-						printf("\n - Button Triggered \r\n");
-					} else {
-						printf("\n - TouchScreen Triggered \r\n");
-					}
-					printf("Screen ON \r\n");
-					BSP_LCD_DisplayOn();
-					HAL_GPIO_WritePin(GLED_GPIO_Port, GLED_Pin, 1);
-					HAL_GPIO_WritePin(RLED_GPIO_Port, RLED_Pin, 0);
-					SCREEN_Actualization();
-					IRQ_BTN2 = 0;
-					IRQ_TS = 0;
-					SCREEN_State = 1;
 				}
 			}
-
-			IRQs = 0;
+			// --- STEP N°19 : Reset Flag TS
+			Flag_TS = 0;
 		}
 
-		//STEP 10 : µP Sleep
+		// --- STEP N°20 : Flag UserButton 2 -----------------------------------
+		else if (Flag_UsBtn2 == 1) {
+			printf("\n - Button Triggered \r\n");
+
+			// --- STEP N°21 : Power ON Screen
+			if (SCREEN_State == 0) {
+				printf("Screen ON \r\n");
+				Display_LCD_ON();
+				SCREEN_State = 1;
+			}
+			// --- STEP N°29 : Reset Flag UserButton2
+			Flag_UsBtn2 = 0;
+		}
+
+		// --- STEP N°30 & N°31 : Flag DataTHRdy -------------------------------
+		else if (Flag_DataTHRdy == 1) {
+			printf("Temperature & Humidity sensor OK \r\n");
+			SENSOR_hts221_Read_Data();
+			save_temp_rdy = 1;
+
+			// --- STEP N°32 & N°33 : Screen Refresh
+			if (currentScreen == 1 || currentScreen == 2) {
+				Display_LCD_Pages(currentScreen);
+			}
+			// --- STEP N°39 : Reset Flag DataTHRdy
+			Flag_DataTHRdy = 0;
+		}
+
+		// --- STEP N°40 & N°41 : Flag DataTHRdy -------------------------------
+		else if (Flag_DataPressRdy == 1) {
+			printf("Pressure sensor OK\r\n");
+			SENSOR_lps22hh_Read_Data();
+			save_pres_rdy = 1;
+
+			// --- STEP N°42 : Screen Refresh
+			if (currentScreen == 3) {
+				Display_LCD_Pages(currentScreen);
+			}
+			// --- STEP N°49 : Reset Flag DataPressRdy
+			Flag_DataPressRdy = 0;
+		}
+
+		// --- STEP N°50 & N°51 : Flag DataWDirRdy -----------------------------
+		else if (Flag_DataWDirRdy == 1) {
+			printf("Wind Direction sensor OK\r\n");
+			SENSOR_WDir_Read_Data();
+			save_dir_rdy = 1;
+
+			// --- STEP N°52 : Screen Refresh
+			if (currentScreen == 5) {
+				Display_LCD_Pages(currentScreen);
+			}
+			// --- STEP N°59 : Reset Flag DataWDirRdy
+			Flag_DataWDirRdy = 0;
+		}
+
+		// --- STEP N°60 & N°61 : Flag Rainfall --------------------------------
+		else if (Flag_Rainfall == 1) {
+			printf("Rainfall sensor OK\r\n");
+			SENSOR_Rain_Read_Data();
+			save_rain_rdy = 1;
+
+			// --- STEP N°62 : Screen Refresh
+			if (currentScreen == 6) {
+				Display_LCD_Pages(currentScreen);
+			}
+			// --- STEP N°69 : Reset Flag Rainfall
+			Flag_Rainfall = 0;
+		}
+
+		// --- STEP N°70 : Flag Measure ----------------------------------------
+		if (Flag_Measure == 1) {
+			switch(MesCpt) {
+			case 0:
+				// --- STEP N°71 : Humidity & Temperature
+				SENSORS_Start_hts221_Conversion();
+				MesCpt = 1;
+				break;
+			case 1:
+				// --- STEP N°72 : Pressure
+				SENSORS_Start_lps22hh_Conversion();
+				MesCpt = 2;
+				break;
+			case 2:
+				// --- STEP N°73 & N°74 : Wind Speed
+				SENSOR_WindSpeed_Read_Data();
+				save_wind_rdy = 1;
+
+				// --- STEP N°75 : Screen Refresh
+				if (currentScreen == 6) {
+					Display_LCD_Pages(currentScreen);
+				}
+				MesCpt = 3;
+				break;
+			case 3:
+				// --- STEP N°76 : Wind Direction
+				SENSORS_Start_WDir_Conversion();
+				MesCpt = 0;
+				break;
+			}
+		// --- STEP N°79 : Reset Flag Measure
+		Flag_Measure = 0;
+		}
+
+		// --- STEP N°80 to 129 : Save in SDCard (Still to do) -----------------
+		// SDCARD_Actualization(); //Comment to test without SDCard insert.
+
+		// --- STEP N°130 : Flag Inactivity ------------------------------------
+		else if (cpt_inactivity >= 3) {
+			 if (SCREEN_State == 1) {
+				printf("Screen OFF \r\n");
+				Display_LCD_OFF();
+				SCREEN_State = 0;
+			}
+			// --- STEP N°139 : Reset Flag Inactivity
+			 cpt_inactivity = 0;
+		}
+
+
+		// --- STEP N°2 : µP Sleep ---------------------------------------------
 		else {
 			HAL_SuspendTick();
 			HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
@@ -358,10 +401,9 @@ PUTCHAR_PROTOTYPE {
 //HAL TIM PeriodElapsed Callback
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	HAL_ResumeTick();
-	IRQs = 1;
 	if (htim == &htim7) {
 		printf("\n - Timer 7 Triggered \r\n");
-		Mesure = 1;
+		Flag_Measure = 1;
 		cpt_inactivity++;
 		printf("Inactivity CPT : %d \r\n", cpt_inactivity);
 	}
@@ -370,30 +412,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //GPIO EXTI Interruption Callback
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	HAL_ResumeTick();
-	IRQs = 1;
 	if (GPIO_Pin == IRQ_TEMP_Pin) {
-		DataTHRdy = 1;
+		Flag_DataTHRdy = 1;
 	}
 	if (GPIO_Pin == IRQ_PRESS_Pin) {
-		DataPressRdy = 1;
+		Flag_DataPressRdy = 1;
 	}
 	if (GPIO_Pin == IRQ_RAIN_Pin) {
-		FlagPluvio = 1;
+		Flag_Rainfall = 1;
 	}
 	if (GPIO_Pin == IRQ_TS_Pin) {
 		cpt_inactivity = 0;
-		BSP_TS_GetState(&TS_State);
-		x = TS_State.touchX[0];
-		y = TS_State.touchY[0];
-		IRQ_TS = 1;
+		Flag_TS = 1;
 	}
 	if (GPIO_Pin == BTN2_Pin) {
-		IRQ_BTN2 = 1;
+		Flag_UsBtn2 = 1;
 	}
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-	DataWDirRdy = 1;
+	Flag_DataWDirRdy = 1;
 }
 
 /* USER CODE END 4 */

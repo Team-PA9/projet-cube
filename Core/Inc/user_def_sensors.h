@@ -45,6 +45,6 @@ uint8_t determineDirection(uint16_t);
 
 //SENSOR rainfall
 void SENSOR_Rain_Read_Data(void);
-float calculateRainfall(uint16_t);
+float calculateRainfall(uint32_t);
 
 #endif /* INC_USER_DEF_SENSORS_H_ */
