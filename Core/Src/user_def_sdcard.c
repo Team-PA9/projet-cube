@@ -108,7 +108,8 @@ void SDCARD_Actualization(void) {
 	if (save_dir_rdy == 1) {
 		char displayString[20];
 		sprintf(displayString, "[ %s ]", compassDirections[wind_direction]);
-		add_log(&file5, "LOG_WDir.txt", displayString, log_pluviometre, sprintf("%s", compassDirections[wind_direction]), "");
+		add_log(&file5, "LOG_WDir.txt", displayString, log_pluviometre,
+				sprintf("%s", compassDirections[wind_direction]), "");
 		index_dir++;
 		save_dir_rdy = 0;
 	}
@@ -131,7 +132,8 @@ void new_log(FIL *fp, const char *filename, const char *content) {
 	}
 }
 
-void add_log(FIL *fp, const char *filename, char *data, float tableau[], float value, const char *unit) {
+void add_log(FIL *fp, const char *filename, char *data, float tableau[],
+		float value, const char *unit) {
 	FATFS_LinkDriver(&SD_Driver, SDPath);
 	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
 		Error_Handler();

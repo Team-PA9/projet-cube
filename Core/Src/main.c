@@ -70,7 +70,7 @@ volatile uint8_t Flag_UsBtn2 = 0;
 volatile uint8_t Flag_TS = 0;
 TS_StateTypeDef TS_State;
 uint16_t TS_x, TS_y, TS_past_x, TS_past_y;
-extern int currentScreen;
+extern uint8_t currentScreen;
 
 //SDCARD Variables
 uint8_t save_temp_rdy = 0;
@@ -93,51 +93,52 @@ void SystemClock_Config(void);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-  /* USER CODE BEGIN 1 */
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick.*/
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_TIM2_Init();
-  MX_TIM7_Init();
-  MX_TIM8_Init();
-  MX_ADC1_Init();
-  MX_I2C1_Init();
-  MX_USART1_UART_Init();
-  MX_SDMMC1_SD_Init();
-  MX_DMA2D_Init();
-  MX_FMC_Init();
-  MX_LTDC_Init();
-  MX_FATFS_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_TIM2_Init();
+	MX_TIM7_Init();
+	MX_TIM8_Init();
+	MX_ADC1_Init();
+	MX_I2C1_Init();
+	MX_USART1_UART_Init();
+	MX_SDMMC1_SD_Init();
+	MX_DMA2D_Init();
+	MX_FMC_Init();
+	MX_LTDC_Init();
+	MX_FATFS_Init();
+	MX_TIM6_Init();
+	/* USER CODE BEGIN 2 */
 	// --- STEP N°0 : Initialization -------------------------------------------
 	printf("Initialization started : \r\n");
 
 	//SENSORS Initialization
 	printf("\n - Sensors \r\n");
+	HAL_TIM_Base_Start_IT(&htim6);
 	HAL_TIM_Base_Start_IT(&htim7);
 	HAL_TIM_Base_Start(&htim8);
 	HAL_TIM_Base_Start(&htim2);
@@ -172,35 +173,37 @@ int main(void)
 
 	printf("\n Initialization completed. \r\n");
 
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	// --- STEP N°1 : Waiting for any Flag -------------------------------------
 	while (1) {
 
 		// --- STEP N°10 : Flag TS ---------------------------------------------
 		if (Flag_TS == 1) {
-			printf("\n - TouchScreen Triggered \r\n");
 			TS_past_x = TS_x;
 			TS_past_y = TS_y;
 			BSP_TS_GetState(&TS_State);
 			TS_x = TS_State.touchX[0];
 			TS_y = TS_State.touchY[0];
 
-			// --- STEP N°11 : Power ON Screen
-			if (SCREEN_State == 0) {
-				printf("Screen ON \r\n");
-				Display_LCD_ON();
-				SCREEN_State = 1;
-			}
 			// --- STEP N°12 : Compare TS with previous TS data
-			else if (SCREEN_State == 1) {
+			if (TS_x != TS_past_x || TS_y != TS_past_y) {
+				printf("\n - TouchScreen Triggered \r\n");
+
+				// --- STEP N°11 : Power ON Screen
+				if (SCREEN_State == 0) {
+					printf("Screen ON \r\n");
+					Display_LCD_ON();
+					SCREEN_State = 1;
+				}
 
 				// --- STEP N°13 : Refresh Screen
-				if (TS_x != TS_past_x || TS_y != TS_past_y) {
-				SCREEN_Actualization();
+				else if (SCREEN_State == 1) {
+					TS_Actualization();
 				}
+				cpt_inactivity = 0;
 			}
 			// --- STEP N°19 : Reset Flag TS
 			Flag_TS = 0;
@@ -228,6 +231,7 @@ int main(void)
 
 			// --- STEP N°32 & N°33 : Screen Refresh
 			if (currentScreen == 1 || currentScreen == 2) {
+				printf("Display Page, %d", currentScreen);
 				Display_LCD_Pages(currentScreen);
 			}
 			// --- STEP N°39 : Reset Flag DataTHRdy
@@ -278,7 +282,7 @@ int main(void)
 
 		// --- STEP N°70 : Flag Measure ----------------------------------------
 		if (Flag_Measure == 1) {
-			switch(MesCpt) {
+			switch (MesCpt) {
 			case 0:
 				// --- STEP N°71 : Humidity & Temperature
 				SENSORS_Start_hts221_Conversion();
@@ -306,24 +310,23 @@ int main(void)
 				MesCpt = 0;
 				break;
 			}
-		// --- STEP N°79 : Reset Flag Measure
-		Flag_Measure = 0;
+			// --- STEP N°79 : Reset Flag Measure
+			Flag_Measure = 0;
 		}
 
 		// --- STEP N°80 to 129 : Save in SDCard (Still to do) -----------------
 		// SDCARD_Actualization(); //Comment to test without SDCard insert.
 
 		// --- STEP N°130 : Flag Inactivity ------------------------------------
-		else if (cpt_inactivity >= 3) {
-			 if (SCREEN_State == 1) {
+		else if (cpt_inactivity >= 31) {
+			if (SCREEN_State == 1) {
 				printf("Screen OFF \r\n");
 				Display_LCD_OFF();
 				SCREEN_State = 0;
 			}
 			// --- STEP N°139 : Reset Flag Inactivity
-			 cpt_inactivity = 0;
+			cpt_inactivity = 0;
 		}
-
 
 		// --- STEP N°2 : µP Sleep ---------------------------------------------
 		else {
@@ -331,64 +334,60 @@ int main(void)
 			HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 		}
 	}
-    /* USER CODE END WHILE */
+	/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+	/* USER CODE BEGIN 3 */
 
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_RCC_PWR_CLK_ENABLE();
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 200;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 8;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLM = 8;
+	RCC_OscInitStruct.PLL.PLLN = 200;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+	RCC_OscInitStruct.PLL.PLLQ = 8;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Activate the Over-Drive mode
-  */
-  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Activate the Over-Drive mode
+	 */
+	if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
 /* USER CODE BEGIN 4 */
@@ -405,7 +404,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		printf("\n - Timer 7 Triggered \r\n");
 		Flag_Measure = 1;
 		cpt_inactivity++;
-		printf("Inactivity CPT : %d \r\n", cpt_inactivity);
+		printf("\n CPT : %d \r\n", cpt_inactivity);
+	}
+	if (htim == &htim6) {
+		Flag_TS = 1;
 	}
 }
 
@@ -421,11 +423,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == IRQ_RAIN_Pin) {
 		Flag_Rainfall = 1;
 	}
-	if (GPIO_Pin == IRQ_TS_Pin) {
-		cpt_inactivity = 0;
-		Flag_TS = 1;
-	}
 	if (GPIO_Pin == BTN2_Pin) {
+		cpt_inactivity = 0;
 		Flag_UsBtn2 = 1;
 	}
 }
@@ -437,17 +436,16 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	__disable_irq();
 	while (1) {
 	}
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT

@@ -268,24 +268,25 @@ uint8_t determineDirection(uint16_t adcValue) {
 }
 
 void SENSOR_Rain_Read_Data(void) {
-    uint32_t currentTime = HAL_GetTick();
-    uint32_t elapsedTime = currentTime - lastInterruptTime;
+	uint32_t currentTime = HAL_GetTick();
+	uint32_t elapsedTime = currentTime - lastInterruptTime;
 
-    float rainfall_mm_per_hour = calculateRainfall(elapsedTime);
+	float rainfall_mm_per_hour = calculateRainfall(elapsedTime);
 
-    printf("Rainfall [mm/H]: %f\r\n", rainfall_mm_per_hour);
+	printf("Rainfall [mm/H]: %f\r\n", rainfall_mm_per_hour);
 
-    lastInterruptTime = currentTime;
+	lastInterruptTime = currentTime;
 }
 
 float calculateRainfall(uint32_t elapsedTime) {
-    // Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
-    float rainInches = (float)elapsedTime * 0.011 / 1000.0; // Convert milliseconds to seconds
-    // Conversion factor: 1 inch = 25.4 mm
-    float rainMillimeters = rainInches * 25.4;
+	// Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
+	float rainInches = (float) elapsedTime * 0.011 / 1000.0; // Convert milliseconds to seconds
+	// Conversion factor: 1 inch = 25.4 mm
+	float rainMillimeters = rainInches * 25.4;
 
-    // Calculate rainfall rate in mm per hour
-    float rainfall_mm_per_hour = rainMillimeters / (elapsedTime / (float)MS_PER_HOUR);
+	// Calculate rainfall rate in mm per hour
+	float rainfall_mm_per_hour = rainMillimeters
+			/ (elapsedTime / (float) MS_PER_HOUR);
 
-    return rainfall_mm_per_hour;
+	return rainfall_mm_per_hour;
 }
