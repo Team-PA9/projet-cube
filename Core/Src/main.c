@@ -8,6 +8,7 @@
 #include "fatfs.h"
 #include "i2c.h"
 #include "ltdc.h"
+#include "rtc.h"
 #include "sdmmc.h"
 #include "tim.h"
 #include "usart.h"
@@ -62,6 +63,8 @@ volatile uint8_t Flag_DataPressRdy = 0;
 volatile uint8_t Flag_Rainfall = 0;
 volatile uint8_t Flag_DataWDirRdy = 0;
 uint8_t MesCpt = 0;
+uint32_t rainInterrupt = 0;
+uint32_t *rainInterruptPtr = &rainInterrupt;
 extern int index_HT;
 extern int index_Pr;
 extern int index_WS;
@@ -83,6 +86,12 @@ uint8_t Flag_SavePr = 0;
 uint8_t Flag_SaveWS = 0;
 uint8_t Flag_SaveWD = 0;
 uint8_t Flag_SaveRf = 0;
+
+// RTC Variables
+RTC_DateTypeDef sdatestructure;
+RTC_TimeTypeDef stimestructure;
+RTC_DateTypeDef gdatestructureget;
+RTC_TimeTypeDef gtimestructureget;
 
 /* USER CODE END PV */
 
@@ -137,6 +146,7 @@ int main(void) {
 	MX_LTDC_Init();
 	MX_FATFS_Init();
 	MX_TIM6_Init();
+	MX_RTC_Init();
 	/* USER CODE BEGIN 2 */
 	// --- STEP N°0 : Initialization -------------------------------------------
 	printf("Initialization started : \r\n");
@@ -181,6 +191,29 @@ int main(void) {
 
 	printf("\n Initialization completed. \r\n");
 
+	// RTC Initialization
+	/*##-1- Configure the Date #################################################*/
+	/* Set Date: Monday January 1st 2023 */
+	sdatestructure.Year = 0x17;
+	sdatestructure.Month = RTC_MONTH_JANUARY;
+	sdatestructure.Date = 0x01;
+	sdatestructure.WeekDay = RTC_WEEKDAY_MONDAY;
+
+	if (HAL_RTC_SetDate(&hrtc, &sdatestructure, RTC_FORMAT_BCD) != HAL_OK) {
+		/* Initialization Error */
+		Error_Handler();
+	}
+
+	/*##-2- Configure the Time #################################################*/
+	/* Set Time: 00:00:00 */
+	stimestructure.Hours = 0x00;
+	stimestructure.Minutes = 0x00;
+	stimestructure.Seconds = 0x00;
+
+	if (HAL_RTC_SetTime(&hrtc, &stimestructure, RTC_FORMAT_BCD) != HAL_OK) {
+		/* Initialization Error */
+		Error_Handler();
+	}
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -276,7 +309,7 @@ int main(void) {
 		// --- STEP N°60 & N°61 : Flag Rainfall --------------------------------
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
-			SENSOR_Rain_Read_Data();
+			SENSOR_Rain_Read_Data(rainInterruptPtr);
 			SENSOR_Rain_Add_Data();
 
 			// --- STEP N°62 : Screen Refresh
@@ -289,6 +322,20 @@ int main(void) {
 
 		// --- STEP N°70 : Flag Measure ----------------------------------------
 		if (Flag_Measure == 1) {
+
+			// For exemple, to remove when implemented where it should be
+			/* Get the RTC current Time */
+			HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
+			/* Get the RTC current Date */
+			HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
+
+			/* Display time Format : hh:mm:ss */
+			printf("Time: %02d:%02d:%02d\r\n", gtimestructureget.Hours,
+					gtimestructureget.Minutes, gtimestructureget.Seconds);
+			/* Display date Format : mm-dd-yy */
+			printf("Date: %02d-%02d-%02d\r\n", gdatestructureget.Month,
+					gdatestructureget.Date, 2000 + gdatestructureget.Year);
+
 			switch (MesCpt) {
 			case 0:
 				// --- STEP N°71 : Humidity & Temperature
@@ -379,6 +426,10 @@ void SystemClock_Config(void) {
 	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
 	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
+	/** Configure LSE Drive Capability
+	 */
+	HAL_PWR_EnableBkUpAccess();
+
 	/** Configure the main internal regulator output voltage
 	 */
 	__HAL_RCC_PWR_CLK_ENABLE();
@@ -387,9 +438,11 @@ void SystemClock_Config(void) {
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
 	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI
+			| RCC_OSCILLATORTYPE_LSI;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
 	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
 	RCC_OscInitStruct.PLL.PLLM = 8;
@@ -451,6 +504,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	}
 	if (GPIO_Pin == IRQ_RAIN_Pin) {
 		Flag_Rainfall = 1;
+		rainInterrupt = HAL_GetTick();
 	}
 	if (GPIO_Pin == BTN2_Pin) {
 		SCREEN_InactivityCpt = 0;

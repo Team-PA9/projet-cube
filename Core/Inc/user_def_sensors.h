@@ -48,8 +48,7 @@ void SENSOR_WDir_Read_Data(void);
 void SENSOR_WDir_Add_Data(void);
 
 //SENSOR Rainfall
-float calculateRainfall(uint32_t);
-void SENSOR_Rain_Read_Data(void);
+void SENSOR_Rain_Read_Data(uint32_t *rainInterrupt);
 void SENSOR_Rain_Add_Data(void);
 
 #endif /* INC_USER_DEF_SENSORS_H_ */

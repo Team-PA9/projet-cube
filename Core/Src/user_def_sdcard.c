@@ -21,7 +21,7 @@ extern float log_temperature[];
 extern float log_pressure[];
 extern float log_windspeed[];
 extern uint8_t log_wind_direction[];
-extern float log_rainfall[];
+extern double log_rainfall[];
 
 extern char *compassDirections[];
 
