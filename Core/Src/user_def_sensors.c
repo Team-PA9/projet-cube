@@ -30,21 +30,21 @@ static int16_t data_raw_temperature;
 static uint32_t data_raw_pressure;
 const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE",
 		"SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
-static uint32_t lastInterruptTime = 0;
+static uint32_t lastRainInterrupt = 0;
 
 float humidity_perc;
 float temperature_degC;
 float pressure_hPa;
 float windspeed_kph;
 uint8_t wind_direction;
-float rainfall_mm;
+double rainfall_mmh;
 
 float log_humidity[100];
 float log_temperature[100];
 float log_pressure[100];
 float log_windspeed[100];
 uint8_t log_wind_direction[100];
-float log_rainfall[100];
+double log_rainfall[100];
 
 int index_HT;
 int index_Pr;
@@ -299,32 +299,28 @@ void SENSOR_WDir_Add_Data(void) {
 	index_WD++;
 }
 
-//SENSOR Rainfall
-float calculateRainfall(uint32_t elapsedTime) {
+void SENSOR_Rain_Read_Data(uint32_t *rainInterrupt) {
+
+	// Calculate the time since the last interrupt in milliseconds
+	uint32_t timeElapsed = *rainInterrupt - lastRainInterrupt;
+
+	// Read the timer counter in milliseconds
+	uint16_t timerCounter = __HAL_TIM_GET_COUNTER(&htim2);
+
+	// Reset the timer counter to 0
+	__HAL_TIM_SET_COUNTER(&htim2, 0);
+
+	// Update the last interrupt time
+	lastRainInterrupt = *rainInterrupt;
+
+	// Calculate the rainfall in mm/h
 	// Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
-	float rainInches = (float) elapsedTime * 0.011 / 1000.0; // Convert milliseconds to seconds
-	// Conversion factor: 1 inch = 25.4 mm
-	float rainMillimeters = rainInches * 25.4;
+	rainfall_mmh = (double) timerCounter * 0.2794 / timeElapsed * 3600000; // Convert to mm/h
 
-	// Calculate rainfall rate in mm per hour
-	float rainfall_mm_per_hour = rainMillimeters
-			/ (elapsedTime / (float) MS_PER_HOUR);
-
-	return rainfall_mm_per_hour;
-}
-
-void SENSOR_Rain_Read_Data(void) {
-	uint32_t currentTime = HAL_GetTick();
-	uint32_t elapsedTime = currentTime - lastInterruptTime;
-
-	float rainfall_mm_per_hour = calculateRainfall(elapsedTime);
-
-	printf("Rainfall [mm/H]: %f\r\n", rainfall_mm_per_hour);
-
-	lastInterruptTime = currentTime;
+	printf("Rainfall [mm/H]: %f\r\n", rainfall_mmh);
 }
 
 void SENSOR_Rain_Add_Data(void) {
-	log_rainfall[index_Rf] = rainfall_mm;
+	log_rainfall[index_Rf] = rainfall_mmh;
 	index_Rf++;
 }
