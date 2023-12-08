@@ -86,6 +86,9 @@ void Error_Handler(void);
 #define RLED_GPIO_Port GPIOH
 #define GLED_Pin GPIO_PIN_10
 #define GLED_GPIO_Port GPIOH
+#define IRQ_RAIN_Pin GPIO_PIN_15
+#define IRQ_RAIN_GPIO_Port GPIOB
+#define IRQ_RAIN_EXTI_IRQn EXTI15_10_IRQn
 
 /* USER CODE BEGIN Private defines */
 

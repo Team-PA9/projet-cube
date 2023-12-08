@@ -8,33 +8,28 @@
 /* SDCARD variables ----------------------------------------------------------*/
 FIL file1, file2, file3, file4, file5, file6; /* File read buffer */
 uint32_t byteswritten; /* File write/read counts */
-float log_temperature[100];
-float log_pression[100];
-float log_direction[100];
-float log_vitesse[100];
-float log_pluviometre[100];
-float log_humidite[100];
 uint8_t workBuffer[_MAX_SS];
-int index_temp;
-int index_pres;
-int index_dir;
-int index_wind;
-int index_rain;
-int index_humi;
 
-extern float humidity_perc;
-extern float temperature_degC;
-extern float pressure_hPa;
-extern float windspeed_kph;
-extern float rainfall_mm;
-extern uint8_t wind_direction;
+extern int index_HT;
+extern int index_Pr;
+extern int index_WS;
+extern int index_WD;
+extern int index_Rf;
+
+extern float log_humidity[];
+extern float log_temperature[];
+extern float log_pressure[];
+extern float log_windspeed[];
+extern uint8_t log_wind_direction[];
+extern float log_rainfall[];
+
 extern char *compassDirections[];
 
-extern uint8_t save_temp_rdy;
-extern uint8_t save_pres_rdy;
-extern uint8_t save_wind_rdy;
-extern uint8_t save_dir_rdy;
-extern uint8_t save_rain_rdy;
+extern uint8_t Flag_SaveHT;
+extern uint8_t Flag_SavePr;
+extern uint8_t Flag_SaveWS;
+extern uint8_t Flag_SaveWD;
+extern uint8_t Flag_SaveRf;
 
 /* SDCARD functions ----------------------------------------------------------*/
 void SDCARD_Init(void) {
@@ -45,12 +40,12 @@ void SDCARD_Init(void) {
 				sizeof(workBuffer)) != FR_OK) {
 			Error_Handler(); /* FatFs Format Error */
 		} else {
-			new_log(&file1, "LOG_Temp.txt", "Log temperature");
-			new_log(&file2, "LOG_Pres.txt", "Log pression");
-			new_log(&file3, "LOG_WDir.txt", "Log direction vent");
-			new_log(&file4, "LOG_WSpe.txt", "Log vitesse vent");
-			new_log(&file5, "LOG_Rain.txt", "Log pluviometrie");
-			new_log(&file6, "LOG_Humi.txt", "Log humidite");
+			new_log(&file1, "LOG_Temp.txt", "Log Temperature");
+			new_log(&file2, "LOG_Pres.txt", "Log Pressure");
+			new_log(&file3, "LOG_WDir.txt", "Log Wind Direction");
+			new_log(&file4, "LOG_WSpe.txt", "Log Wind Speed");
+			new_log(&file5, "LOG_Rain.txt", "Log Rainfall");
+			new_log(&file6, "LOG_Humi.txt", "Log Humidity");
 		}
 	}
 	FATFS_UnLinkDriver(SDPath);
@@ -58,59 +53,67 @@ void SDCARD_Init(void) {
 
 void SDCARD_Actualization(void) {
 	// Interruption hts221
-	if (save_temp_rdy == 1) {
-		// Pour la temperature
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f 'C ]", temperature_degC);
-		add_log(&file1, "LOG_Temp.txt", displayString, log_temperature,
-				temperature_degC, "°C");
-		index_temp++;
-		char displayString2[20];
-		// Pour l'humidite
-		sprintf(displayString2, "[ %6.2f %% ]", humidity_perc);
-		add_log(&file6, "LOG_Humi.txt", displayString2, log_humidite,
-				humidity_perc, "%");
-		index_rain++;
-		save_temp_rdy = 0;
+	if (Flag_SaveHT == 1) {
+		for (int i = 0; i <= index_HT; i++) {
+			// Temperature
+			char displayString[20];
+			sprintf(displayString, "[ %6.2f 'C ]", log_temperature[i]);
+			add_log(&file1, "LOG_Temp.txt", displayString, log_temperature[i],
+					"°C");
+			// Humidity
+			char displayString2[20];
+			sprintf(displayString2, "[ %6.2f %% ]", log_humidity[i]);
+			add_log(&file6, "LOG_Humi.txt", displayString2, log_humidity[i],
+					"%");
+		}
+		index_HT = 0;
+		Flag_SaveHT = 0;
 	}
 
 	// Interruption lps22hh
-	if (save_pres_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f Pa ]", pressure_hPa);
-		add_log(&file2, "LOG_Pres.txt", displayString, log_pression,
-				pressure_hPa, "hPa");
-		index_pres++;
-		save_pres_rdy = 0;
+	else if (Flag_SavePr == 1) {
+		for (int i = 0; i <= index_Pr; i++) {
+			char displayString[20];
+			sprintf(displayString, "[ %6.2f hPa ]", log_pressure[i]);
+			add_log(&file2, "LOG_Pres.txt", displayString, log_pressure[i],
+					"hPa");
+		}
+		Flag_SavePr = 0;
 	}
 
-	// Interruption vitesse
-	if (save_wind_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f m/s ]", windspeed_kph);
-		add_log(&file3, "LOG_Wspe.txt", displayString, log_vitesse,
-				windspeed_kph, "km/h");
-		index_wind++;
-		save_wind_rdy = 0;
+	// Interruption Wind Speed
+	else if (Flag_SaveWS == 1) {
+		for (int i = 0; i <= index_WS; i++) {
+			char displayString[20];
+			sprintf(displayString, "[ %6.2f km/h ]", log_windspeed[i]);
+			add_log(&file3, "LOG_Wspe.txt", displayString, log_windspeed[i],
+					"km/h");
+		}
+		Flag_SaveWS = 0;
 	}
 
-	// Interruption pluviometre
-	if (save_rain_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f mm/H ]", rainfall_mm);
-		add_log(&file5, "LOG_Rain.txt", displayString, log_pluviometre,
-				rainfall_mm, "mm");
-		index_rain++;
-		save_rain_rdy = 0;
+	// Interruption Rainfall
+	else if (Flag_SaveRf == 1) {
+		for (int i = 0; i <= index_Rf; i++) {
+			char displayString[20];
+			sprintf(displayString, "[ %6.2f mm/h ]", log_rainfall[i]);
+			add_log(&file5, "LOG_Rain.txt", displayString, log_rainfall[i],
+					"mm/h");
+		}
+		Flag_SaveRf = 0;
 	}
 
-	// Interruption girouette
-	if (save_dir_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %s ]", compassDirections[wind_direction]);
-		add_log(&file5, "LOG_WDir.txt", displayString, log_pluviometre, sprintf("%s", compassDirections[wind_direction]), "");
-		index_dir++;
-		save_dir_rdy = 0;
+	// Interruption Wind Direction
+	else if (Flag_SaveWD == 1) {
+		for (int i = 0; i <= index_HT; i++) {
+			char displayString[20];
+			sprintf(displayString, "[ %s ]",
+					compassDirections[log_wind_direction[i]]);
+			add_log(&file5, "LOG_WDir.txt", displayString,
+					sprintf("%s", compassDirections[log_wind_direction[i]]),
+					"");
+		}
+		Flag_SaveWD = 0;
 	}
 
 }
@@ -131,7 +134,8 @@ void new_log(FIL *fp, const char *filename, const char *content) {
 	}
 }
 
-void add_log(FIL *fp, const char *filename, char *data, float tableau[], float value, const char *unit) {
+void add_log(FIL *fp, const char *filename, char *data, float value,
+		const char *unit) {
 	FATFS_LinkDriver(&SD_Driver, SDPath);
 	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
 		Error_Handler();
@@ -141,7 +145,6 @@ void add_log(FIL *fp, const char *filename, char *data, float tableau[], float v
 		} else {
 			f_puts("\n", fp);
 			f_puts(data, fp);
-			tableau[-1] = value;
 			f_close(fp);
 		}
 	}
