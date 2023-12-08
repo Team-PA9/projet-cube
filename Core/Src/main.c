@@ -62,9 +62,14 @@ volatile uint8_t Flag_DataPressRdy = 0;
 volatile uint8_t Flag_Rainfall = 0;
 volatile uint8_t Flag_DataWDirRdy = 0;
 uint8_t MesCpt = 0;
+extern int index_HT;
+extern int index_Pr;
+extern int index_WS;
+extern int index_WD;
+extern int index_Rf;
 
 //SCREEN Variables
-volatile uint8_t cpt_inactivity = 0;
+volatile uint8_t SCREEN_InactivityCpt = 0;
 volatile uint8_t SCREEN_State = 0;
 volatile uint8_t Flag_UsBtn2 = 0;
 volatile uint8_t Flag_TS = 0;
@@ -73,11 +78,11 @@ uint16_t TS_x, TS_y, TS_past_x, TS_past_y;
 extern uint8_t currentScreen;
 
 //SDCARD Variables
-uint8_t save_temp_rdy = 0;
-uint8_t save_pres_rdy = 0;
-uint8_t save_wind_rdy = 0;
-uint8_t save_dir_rdy = 0;
-uint8_t save_rain_rdy = 0;
+uint8_t Flag_SaveHT = 0;
+uint8_t Flag_SavePr = 0;
+uint8_t Flag_SaveWS = 0;
+uint8_t Flag_SaveWD = 0;
+uint8_t Flag_SaveRf = 0;
 
 /* USER CODE END PV */
 
@@ -144,6 +149,11 @@ int main(void) {
 	HAL_TIM_Base_Start(&htim2);
 	SENSOR_lps22hh_Init();
 	SENSOR_hts221_Init();
+	index_HT = 0;
+	index_Pr = 0;
+	index_WS = 0;
+	index_WD = 0;
+	index_Rf = 0;
 	printf("Done. \r\n");
 
 	//SCREEN Initialization
@@ -160,8 +170,6 @@ int main(void) {
 	printf("\n - Touch Screen \r\n");
 	BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
 	BSP_TS_ResetTouchData(&TS_State);
-	BSP_TS_ITConfig();
-	BSP_TS_ITClear();
 	TS_x = TS_State.touchX[0];
 	TS_y = TS_State.touchY[0];
 	printf("Done. \r\n");
@@ -203,7 +211,7 @@ int main(void) {
 				else if (SCREEN_State == 1) {
 					TS_Actualization();
 				}
-				cpt_inactivity = 0;
+				SCREEN_InactivityCpt = 0;
 			}
 			// --- STEP N°19 : Reset Flag TS
 			Flag_TS = 0;
@@ -227,11 +235,10 @@ int main(void) {
 		else if (Flag_DataTHRdy == 1) {
 			printf("Temperature & Humidity sensor OK \r\n");
 			SENSOR_hts221_Read_Data();
-			save_temp_rdy = 1;
+			SENSOR_hts221_Add_Data();
 
 			// --- STEP N°32 & N°33 : Screen Refresh
 			if (currentScreen == 1 || currentScreen == 2) {
-				printf("Display Page, %d", currentScreen);
 				Display_LCD_Pages(currentScreen);
 			}
 			// --- STEP N°39 : Reset Flag DataTHRdy
@@ -242,7 +249,7 @@ int main(void) {
 		else if (Flag_DataPressRdy == 1) {
 			printf("Pressure sensor OK\r\n");
 			SENSOR_lps22hh_Read_Data();
-			save_pres_rdy = 1;
+			SENSOR_lps22hh_Add_Data();
 
 			// --- STEP N°42 : Screen Refresh
 			if (currentScreen == 3) {
@@ -256,7 +263,7 @@ int main(void) {
 		else if (Flag_DataWDirRdy == 1) {
 			printf("Wind Direction sensor OK\r\n");
 			SENSOR_WDir_Read_Data();
-			save_dir_rdy = 1;
+			SENSOR_WDir_Add_Data();
 
 			// --- STEP N°52 : Screen Refresh
 			if (currentScreen == 5) {
@@ -270,7 +277,7 @@ int main(void) {
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
 			SENSOR_Rain_Read_Data();
-			save_rain_rdy = 1;
+			SENSOR_Rain_Add_Data();
 
 			// --- STEP N°62 : Screen Refresh
 			if (currentScreen == 6) {
@@ -285,28 +292,28 @@ int main(void) {
 			switch (MesCpt) {
 			case 0:
 				// --- STEP N°71 : Humidity & Temperature
-				SENSORS_Start_hts221_Conversion();
+				SENSOR_hts221_Start_Conversion();
 				MesCpt = 1;
 				break;
 			case 1:
 				// --- STEP N°72 : Pressure
-				SENSORS_Start_lps22hh_Conversion();
+				SENSOR_lps22hh_Start_Conversion();
 				MesCpt = 2;
 				break;
 			case 2:
 				// --- STEP N°73 & N°74 : Wind Speed
 				SENSOR_WindSpeed_Read_Data();
-				save_wind_rdy = 1;
+				SENSOR_WindSpeed_Add_Data();
 
 				// --- STEP N°75 : Screen Refresh
-				if (currentScreen == 6) {
+				if (currentScreen == 4) {
 					Display_LCD_Pages(currentScreen);
 				}
 				MesCpt = 3;
 				break;
 			case 3:
 				// --- STEP N°76 : Wind Direction
-				SENSORS_Start_WDir_Conversion();
+				SENSOR_WDir_Start_Conversion();
 				MesCpt = 0;
 				break;
 			}
@@ -314,18 +321,41 @@ int main(void) {
 			Flag_Measure = 0;
 		}
 
-		// --- STEP N°80 to 129 : Save in SDCard (Still to do) -----------------
-		// SDCARD_Actualization(); //Comment to test without SDCard insert.
+		// --- STEP N°80 to N°89 : Save HT in SDCard ---------------------------
+		else if (index_HT == 99) {
+			Flag_SaveHT = 1;
+			SDCARD_Actualization();
+		}
+		// --- STEP N°90 to N°99 : Save Pr in SDCard ---------------------------
+		else if (index_Pr == 99) {
+			Flag_SavePr = 1;
+			SDCARD_Actualization();
+		}
+		// --- STEP N°100 to N°109 : Save WS in SDCard ---------------------------
+		else if (index_WS == 99) {
+			Flag_SaveWS = 1;
+			SDCARD_Actualization();
+		}
+		// --- STEP N°110 to N°119 : Save WD in SDCard ---------------------------
+		else if (index_WD == 99) {
+			Flag_SaveWD = 1;
+			SDCARD_Actualization();
+		}
+		// --- STEP N°120 to N°129 : Save Rf in SDCard ---------------------------
+		else if (index_Rf == 99) {
+			Flag_SaveRf = 1;
+			SDCARD_Actualization();
+		}
 
 		// --- STEP N°130 : Flag Inactivity ------------------------------------
-		else if (cpt_inactivity >= 31) {
+		else if (SCREEN_InactivityCpt >= 31) {
 			if (SCREEN_State == 1) {
 				printf("Screen OFF \r\n");
 				Display_LCD_OFF();
 				SCREEN_State = 0;
 			}
 			// --- STEP N°139 : Reset Flag Inactivity
-			cpt_inactivity = 0;
+			SCREEN_InactivityCpt = 0;
 		}
 
 		// --- STEP N°2 : µP Sleep ---------------------------------------------
@@ -403,8 +433,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim7) {
 		printf("\n - Timer 7 Triggered \r\n");
 		Flag_Measure = 1;
-		cpt_inactivity++;
-		printf("\n CPT : %d \r\n", cpt_inactivity);
+		SCREEN_InactivityCpt++;
 	}
 	if (htim == &htim6) {
 		Flag_TS = 1;
@@ -424,7 +453,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		Flag_Rainfall = 1;
 	}
 	if (GPIO_Pin == BTN2_Pin) {
-		cpt_inactivity = 0;
+		SCREEN_InactivityCpt = 0;
 		Flag_UsBtn2 = 1;
 	}
 }

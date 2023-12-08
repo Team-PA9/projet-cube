@@ -28,18 +28,29 @@ lin_t lin_temp;
 static int16_t data_raw_humidity;
 static int16_t data_raw_temperature;
 static uint32_t data_raw_pressure;
-
+const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE",
+		"SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
 static uint32_t lastInterruptTime = 0;
 
 float humidity_perc;
 float temperature_degC;
 float pressure_hPa;
 float windspeed_kph;
-float rainfall_mm;
 uint8_t wind_direction;
+float rainfall_mm;
 
-const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE",
-		"SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
+float log_humidity[100];
+float log_temperature[100];
+float log_pressure[100];
+float log_windspeed[100];
+uint8_t log_wind_direction[100];
+float log_rainfall[100];
+
+int index_HT;
+int index_Pr;
+int index_WS;
+int index_WD;
+int index_Rf;
 
 /* SENSORS functions ---------------------------------------------------------*/
 //SENSORS GEN
@@ -49,26 +60,6 @@ void tx_com(uint8_t *tx_buffer, uint16_t len) {
 
 void platform_delay(uint32_t ms) {
 	HAL_Delay(ms);
-}
-
-void SENSORS_Start_WDir_Conversion(void) {
-	HAL_ADC_Start_IT(&hadc1);
-}
-
-void SENSORS_Start_hts221_Conversion(void) {
-	hts221_one_shoot_trigger_set(&dev_ctx_hts221, PROPERTY_ENABLE);
-}
-
-void SENSORS_Start_lps22hh_Conversion(void) {
-	uint8_t ctrl_reg2 = 0;
-	lps22hh_read_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2, 1);
-	ctrl_reg2 |= 1;
-	lps22hh_write_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2, 1);
-}
-
-float linear_interpolation(lin_t *lin, int16_t x) {
-	return ((lin->y1 - lin->y0) * x
-			+ ((lin->x1 * lin->y0) - (lin->x0 * lin->y1))) / (lin->x1 - lin->x0);
 }
 
 //SENSOR hts221
@@ -130,6 +121,15 @@ int32_t hts221_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len) {
 	return 0;
 }
 
+float linear_interpolation(lin_t *lin, int16_t x) {
+	return ((lin->y1 - lin->y0) * x
+			+ ((lin->x1 * lin->y0) - (lin->x0 * lin->y1))) / (lin->x1 - lin->x0);
+}
+
+void SENSOR_hts221_Start_Conversion(void) {
+	hts221_one_shoot_trigger_set(&dev_ctx_hts221, PROPERTY_ENABLE);
+}
+
 void SENSOR_hts221_Read_Data(void) {
 	/* Read humidity data */
 	memset(&data_raw_humidity, 0x00, sizeof(int16_t));
@@ -152,6 +152,12 @@ void SENSOR_hts221_Read_Data(void) {
 	sprintf((char*) tx_buffer, "Temperature [degC]: %6.2f\r\n",
 			temperature_degC);
 	tx_com(tx_buffer, strlen((char const*) tx_buffer));
+}
+
+void SENSOR_hts221_Add_Data(void) {
+	log_temperature[index_HT] = temperature_degC;
+	log_humidity[index_HT] = humidity_perc;
+	index_HT++;
 }
 
 //SENSOR lps22hh
@@ -211,6 +217,13 @@ int32_t lps22hh_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t len) {
 	return 0;
 }
 
+void SENSOR_lps22hh_Start_Conversion(void) {
+	uint8_t ctrl_reg2 = 0;
+	lps22hh_read_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2, 1);
+	ctrl_reg2 |= 1;
+	lps22hh_write_reg(&dev_ctx_lps22hh, LPS22HH_CTRL_REG2, &ctrl_reg2, 1);
+}
+
 void SENSOR_lps22hh_Read_Data(void) {
 	memset(&data_raw_pressure, 0x00, sizeof(uint32_t));
 	lps22hh_pressure_raw_get(&dev_ctx_lps22hh, &data_raw_pressure);
@@ -219,15 +232,12 @@ void SENSOR_lps22hh_Read_Data(void) {
 	tx_com(tx_buffer, strlen((char const*) tx_buffer));
 }
 
-//SENSOR wind speed
-void SENSOR_WindSpeed_Read_Data(void) {
-	uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
-	windspeed_kph = calculateWindSpeed(timer_counter);
-
-	printf("Wind Speed [kph]: %f\r\n", windspeed_kph);
-	__HAL_TIM_SET_COUNTER(&htim8, 0);
+void SENSOR_lps22hh_Add_Data(void) {
+	log_pressure[index_Pr] = pressure_hPa;
+	index_Pr++;
 }
 
+//SENSOR Wind Speed
 float calculateWindSpeed(uint16_t switchClosures) {
 	// Conversion factor: 1.492 mph corresponds to 1 switch closure per second
 	float countsPerSecond = (float) switchClosures / 60.0;
@@ -237,15 +247,20 @@ float calculateWindSpeed(uint16_t switchClosures) {
 	return windSpeedKph;
 }
 
-//SENSOR wind direction
-void SENSOR_WDir_Read_Data(void) {
-	uint16_t buf = 0;
-	buf = HAL_ADC_GetValue(&hadc1);
+void SENSOR_WindSpeed_Read_Data(void) {
+	uint16_t timer_counter = __HAL_TIM_GET_COUNTER(&htim8);
+	windspeed_kph = calculateWindSpeed(timer_counter);
 
-	wind_direction = determineDirection(buf);
-	printf("Wind Direction: %s\r\n", compassDirections[wind_direction]);
+	printf("Wind Speed [kph]: %f\r\n", windspeed_kph);
+	__HAL_TIM_SET_COUNTER(&htim8, 0);
 }
 
+void SENSOR_WindSpeed_Add_Data(void) {
+	log_windspeed[index_WS] = windspeed_kph;
+	index_WS++;
+}
+
+//SENSOR Wind Direction
 uint8_t determineDirection(uint16_t adcValue) {
 	// Define the compass directions
 	const int numDirections = 16;
@@ -267,17 +282,24 @@ uint8_t determineDirection(uint16_t adcValue) {
 	return closestIndex;
 }
 
-void SENSOR_Rain_Read_Data(void) {
-	uint32_t currentTime = HAL_GetTick();
-	uint32_t elapsedTime = currentTime - lastInterruptTime;
-
-	float rainfall_mm_per_hour = calculateRainfall(elapsedTime);
-
-	printf("Rainfall [mm/H]: %f\r\n", rainfall_mm_per_hour);
-
-	lastInterruptTime = currentTime;
+void SENSOR_WDir_Start_Conversion(void) {
+	HAL_ADC_Start_IT(&hadc1);
 }
 
+void SENSOR_WDir_Read_Data(void) {
+	uint16_t buf = 0;
+	buf = HAL_ADC_GetValue(&hadc1);
+
+	wind_direction = determineDirection(buf);
+	printf("Wind Direction: %s\r\n", compassDirections[wind_direction]);
+}
+
+void SENSOR_WDir_Add_Data(void) {
+	log_wind_direction[index_WD] = wind_direction;
+	index_WD++;
+}
+
+//SENSOR Rainfall
 float calculateRainfall(uint32_t elapsedTime) {
 	// Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
 	float rainInches = (float) elapsedTime * 0.011 / 1000.0; // Convert milliseconds to seconds
@@ -289,4 +311,20 @@ float calculateRainfall(uint32_t elapsedTime) {
 			/ (elapsedTime / (float) MS_PER_HOUR);
 
 	return rainfall_mm_per_hour;
+}
+
+void SENSOR_Rain_Read_Data(void) {
+	uint32_t currentTime = HAL_GetTick();
+	uint32_t elapsedTime = currentTime - lastInterruptTime;
+
+	float rainfall_mm_per_hour = calculateRainfall(elapsedTime);
+
+	printf("Rainfall [mm/H]: %f\r\n", rainfall_mm_per_hour);
+
+	lastInterruptTime = currentTime;
+}
+
+void SENSOR_Rain_Add_Data(void) {
+	log_rainfall[index_Rf] = rainfall_mm;
+	index_Rf++;
 }

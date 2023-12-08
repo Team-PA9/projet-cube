@@ -6,20 +6,24 @@
 #include "user_def_screen.h"
 
 /* SCREEN variables ----------------------------------------------------------*/
-uint8_t FirstTimeOnScreen = 0;
+uint8_t firstTimeOnScreen = 0;
 uint8_t currentScreen = 0;
-
-extern float humidity_perc;
-extern float temperature_degC;
-extern float pressure_hPa;
-extern float windspeed_kph;
-extern float rainfall_mm;
-extern uint8_t wind_direction;
-extern char *compassDirections[];
-uint8_t direction = 6;
-
-extern TS_StateTypeDef TS_State;
 extern uint16_t TS_x, TS_y;
+
+extern int index_HT;
+extern int index_Pr;
+extern int index_WS;
+extern int index_WD;
+extern int index_Rf;
+
+extern float log_humidity[];
+extern float log_temperature[];
+extern float log_pressure[];
+extern float log_windspeed[];
+extern uint8_t log_wind_direction[];
+extern float log_rainfall[];
+
+extern char *compassDirections[];
 
 /* SCREEN functions ----------------------------------------------------------*/
 void Display_LCD_Init(void) {
@@ -123,85 +127,85 @@ void Display_LCD_Pages(int page) {
 				(uint8_t*) "P6:Pluv", LEFT_MODE);
 		break;
 	case 1:
-		if (FirstTimeOnScreen == 1) {
+		if (firstTimeOnScreen == 1) {
 			currentScreen = 1;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "TEMPERATURE :",
 					CENTER_MODE);
 			Display_LCD_BtnHome();
-			FirstTimeOnScreen = 0;
+			firstTimeOnScreen = 0;
 		}
-		sprintf(displayString, "[ %6.2f 'C ]", temperature_degC);
+		sprintf(displayString, "[ %6.2f 'C ]", log_temperature[index_HT - 1]);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (BSP_LCD_GetYSize() / 2),
 				(uint8_t*) displayString, CENTER_MODE);
 		break;
 	case 2:
-		if (FirstTimeOnScreen == 1) {
+		if (firstTimeOnScreen == 1) {
 			currentScreen = 2;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "HUMIDITE :",
 					CENTER_MODE);
 			Display_LCD_BtnHome();
-			FirstTimeOnScreen = 0;
+			firstTimeOnScreen = 0;
 		}
-		printf("Actu Hum en cours");
-		sprintf(displayString, "[ %6.2f %% ]", humidity_perc);
+		sprintf(displayString, "[ %6.2f %% ]", log_humidity[index_HT - 1]);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (BSP_LCD_GetYSize() / 2),
 				(uint8_t*) displayString, CENTER_MODE);
 		break;
 	case 3:
-		if (FirstTimeOnScreen == 1) {
+		if (firstTimeOnScreen == 1) {
 			currentScreen = 3;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "PRESSION :",
 					CENTER_MODE);
 			Display_LCD_BtnHome();
-			FirstTimeOnScreen = 0;
+			firstTimeOnScreen = 0;
 		}
-		sprintf(displayString, "[ %6.2f Pa ]", pressure_hPa);
+		sprintf(displayString, "[ %6.2f hPa ]", log_pressure[index_Pr - 1]);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (BSP_LCD_GetYSize() / 2),
 				(uint8_t*) displayString, CENTER_MODE);
 		break;
 	case 4:
-		if (FirstTimeOnScreen == 1) {
+		if (firstTimeOnScreen == 1) {
 			currentScreen = 4;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "VITESSE :", CENTER_MODE);
 			Display_LCD_BtnHome();
-			FirstTimeOnScreen = 0;
+			firstTimeOnScreen = 0;
 		}
-		sprintf(displayString, "[ %6.2f m/s ]", windspeed_kph);
+		sprintf(displayString, "[ %6.2f km/h ]", log_windspeed[index_WS - 1]);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (BSP_LCD_GetYSize() / 2),
 				(uint8_t*) displayString, CENTER_MODE);
 		break;
 	case 5:
-		if (FirstTimeOnScreen == 1) {
+		if (firstTimeOnScreen == 1) {
 			currentScreen = 5;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) " DIRECTION :",
 					CENTER_MODE);
 			Display_LCD_BtnHome();
-			FirstTimeOnScreen = 0;
+			firstTimeOnScreen = 0;
 		}
-		sprintf(displayString, "[ %s ]", compassDirections[wind_direction]);
+		sprintf(displayString, "[ %s ]",
+				compassDirections[log_wind_direction[index_WD - 1]]);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (BSP_LCD_GetYSize() / 2),
 				(uint8_t*) displayString, CENTER_MODE);
 		break;
 	case 6:
-		if (FirstTimeOnScreen == 1) {
+		if (firstTimeOnScreen == 1) {
 			currentScreen = 6;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "PLUVIOMETRIE :",
 					CENTER_MODE);
 			Display_LCD_BtnHome();
-			FirstTimeOnScreen = 0;
+			firstTimeOnScreen = 0;
 		}
-		sprintf(displayString, "[ %6.2f mm/H ]", rainfall_mm);
+		sprintf(displayString, "[ %6.2f mm/h ]", log_rainfall[index_Rf - 1]);
 		BSP_LCD_DisplayStringAt(10,
 				BSP_LCD_GetYSize() - (BSP_LCD_GetYSize() / 2),
 				(uint8_t*) displayString, CENTER_MODE);
@@ -211,7 +215,7 @@ void Display_LCD_Pages(int page) {
 
 void TS_Actualization(void) {
 	if (currentScreen == 0) { //TS for Main Screen
-		FirstTimeOnScreen = 1;
+		firstTimeOnScreen = 1;
 		if ((80 < TS_x) && (TS_x < 120) && (TS_y > 50) && (TS_y < 90)) {
 			Display_LCD_Pages(1);
 		} else if ((80 < TS_x) && (TS_x < 120) && (TS_y > 120)
