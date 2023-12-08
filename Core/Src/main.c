@@ -60,11 +60,14 @@
 volatile uint8_t Flag_Measure = 0;
 volatile uint8_t Flag_DataTHRdy = 0;
 volatile uint8_t Flag_DataPressRdy = 0;
-volatile uint8_t Flag_Rainfall = 0;
+volatile uint8_t Flag_RainfallCounter = 0;
 volatile uint8_t Flag_DataWDirRdy = 0;
+volatile uint8_t Flag_Rainfall = 0;
 uint8_t MesCpt = 0;
-uint32_t rainInterrupt = 0;
-uint32_t *rainInterruptPtr = &rainInterrupt;
+
+uint32_t RainfallCounter = 0;
+uint32_t *RainfallCounterPtr = &RainfallCounter;
+
 extern int index_HT;
 extern int index_Pr;
 extern int index_WS;
@@ -134,7 +137,6 @@ int main(void) {
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_DMA_Init();
-	MX_TIM2_Init();
 	MX_TIM7_Init();
 	MX_TIM8_Init();
 	MX_ADC1_Init();
@@ -156,7 +158,6 @@ int main(void) {
 	HAL_TIM_Base_Start_IT(&htim6);
 	HAL_TIM_Base_Start_IT(&htim7);
 	HAL_TIM_Base_Start(&htim8);
-	HAL_TIM_Base_Start(&htim2);
 	SENSOR_lps22hh_Init();
 	SENSOR_hts221_Init();
 	index_HT = 0;
@@ -211,6 +212,18 @@ int main(void) {
 	stimestructure.Seconds = 0x00;
 
 	if (HAL_RTC_SetTime(&hrtc, &stimestructure, RTC_FORMAT_BCD) != HAL_OK) {
+		/* Initialization Error */
+		Error_Handler();
+	}
+
+	RTC_AlarmTypeDef sAlarm;
+
+	/*##-3- Configure the Alarm #################################################*/
+	/* Set Alarm to occur every hour */
+	sAlarm.Alarm = RTC_ALARM_A;
+    sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | 0x00 | RTC_ALARMMASK_MINUTES | RTC_ALARMMASK_SECONDS;
+
+	if (HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK) {
 		/* Initialization Error */
 		Error_Handler();
 	}
@@ -306,17 +319,13 @@ int main(void) {
 			Flag_DataWDirRdy = 0;
 		}
 
-		// --- STEP N°60 & N°61 : Flag Rainfall --------------------------------
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
-			SENSOR_Rain_Read_Data(rainInterruptPtr);
+			SENSOR_Rain_Read_Data(RainfallCounterPtr);
 			SENSOR_Rain_Add_Data();
-
-			// --- STEP N°62 : Screen Refresh
 			if (currentScreen == 6) {
 				Display_LCD_Pages(currentScreen);
 			}
-			// --- STEP N°69 : Reset Flag Rainfall
 			Flag_Rainfall = 0;
 		}
 
@@ -364,6 +373,7 @@ int main(void) {
 				MesCpt = 0;
 				break;
 			}
+
 			// --- STEP N°79 : Reset Flag Measure
 			Flag_Measure = 0;
 		}
@@ -429,6 +439,7 @@ void SystemClock_Config(void) {
 	/** Configure LSE Drive Capability
 	 */
 	HAL_PWR_EnableBkUpAccess();
+	__HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
 
 	/** Configure the main internal regulator output voltage
 	 */
@@ -439,10 +450,10 @@ void SystemClock_Config(void) {
 	 * in the RCC_OscInitTypeDef structure.
 	 */
 	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI
-			| RCC_OSCILLATORTYPE_LSI;
+			| RCC_OSCILLATORTYPE_LSE;
+	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
 	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
 	RCC_OscInitStruct.PLL.PLLM = 8;
@@ -503,8 +514,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		Flag_DataPressRdy = 1;
 	}
 	if (GPIO_Pin == IRQ_RAIN_Pin) {
+		RainfallCounter++;
 		Flag_Rainfall = 1;
-		rainInterrupt = HAL_GetTick();
 	}
 	if (GPIO_Pin == BTN2_Pin) {
 		SCREEN_InactivityCpt = 0;
@@ -514,6 +525,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	Flag_DataWDirRdy = 1;
+}
+
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
+	HAL_GPIO_TogglePin(RLED_GPIO_Port, RLED_Pin);
+	RainfallCounter = 0;
+	Flag_Rainfall = 1;
+	printf("Rainfall counter reset\r\n");
 }
 
 /* USER CODE END 4 */

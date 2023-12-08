@@ -57,8 +57,9 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define ETR_RAIN_Pin GPIO_PIN_15
-#define ETR_RAIN_GPIO_Port GPIOA
+#define IRQ_RAIN_Pin GPIO_PIN_15
+#define IRQ_RAIN_GPIO_Port GPIOA
+#define IRQ_RAIN_EXTI_IRQn EXTI15_10_IRQn
 #define ETR_WIND_Pin GPIO_PIN_3
 #define ETR_WIND_GPIO_Port GPIOI
 #define IRQ_PRESS_Pin GPIO_PIN_2
@@ -86,9 +87,6 @@ void Error_Handler(void);
 #define RLED_GPIO_Port GPIOH
 #define GLED_Pin GPIO_PIN_10
 #define GLED_GPIO_Port GPIOH
-#define IRQ_RAIN_Pin GPIO_PIN_15
-#define IRQ_RAIN_GPIO_Port GPIOB
-#define IRQ_RAIN_EXTI_IRQn EXTI15_10_IRQn
 
 /* USER CODE BEGIN Private defines */
 

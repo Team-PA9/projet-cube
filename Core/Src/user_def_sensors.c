@@ -14,7 +14,6 @@
 #define SENSOR_BUS hi2c1
 #define BOOT_TIME 5
 #define TX_BUF_DIM 1000
-#define MS_PER_HOUR 3600000 // 1 hour = 3600000 milliseconds
 
 /* SENSORS variables ---------------------------------------------------------*/
 static uint8_t whoamI, rst;
@@ -30,7 +29,6 @@ static int16_t data_raw_temperature;
 static uint32_t data_raw_pressure;
 const char *compassDirections[] = { "N", "NNE", "NE", "ENE", "E", "ESE", "SE",
 		"SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO" };
-static uint32_t lastRainInterrupt = 0;
 
 float humidity_perc;
 float temperature_degC;
@@ -240,7 +238,7 @@ void SENSOR_lps22hh_Add_Data(void) {
 //SENSOR Wind Speed
 float calculateWindSpeed(uint16_t switchClosures) {
 	// Conversion factor: 1.492 mph corresponds to 1 switch closure per second
-	float countsPerSecond = (float) switchClosures / 60.0;
+	float countsPerSecond = (float) switchClosures / 5.0;
 	// Conversion factor: 1 mph = 1.60934 kph
 	float windSpeedKph = countsPerSecond * 1.492 * 1.60934;
 
@@ -299,24 +297,8 @@ void SENSOR_WDir_Add_Data(void) {
 	index_WD++;
 }
 
-void SENSOR_Rain_Read_Data(uint32_t *rainInterrupt) {
-
-	// Calculate the time since the last interrupt in milliseconds
-	uint32_t timeElapsed = *rainInterrupt - lastRainInterrupt;
-
-	// Read the timer counter in milliseconds
-	uint16_t timerCounter = __HAL_TIM_GET_COUNTER(&htim2);
-
-	// Reset the timer counter to 0
-	__HAL_TIM_SET_COUNTER(&htim2, 0);
-
-	// Update the last interrupt time
-	lastRainInterrupt = *rainInterrupt;
-
-	// Calculate the rainfall in mm/h
-	// Conversion factor: 1 switch closure corresponds to 0.011" (0.2794 mm) of rain
-	rainfall_mmh = (double) timerCounter * 0.2794 / timeElapsed * 3600000; // Convert to mm/h
-
+void SENSOR_Rain_Read_Data(uint32_t *RainfallCounter) {
+	rainfall_mmh = *RainfallCounter * 0.2794;
 	printf("Rainfall [mm/H]: %f\r\n", rainfall_mmh);
 }
 
