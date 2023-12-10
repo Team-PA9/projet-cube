@@ -187,7 +187,7 @@ int main(void) {
 
 	//SDCARD Initialization
 	printf("\n - SDCard \r\n");
-	// SDCARD_Init(); //Comment to test without SDCard insert.
+	SDCARD_Init(); //Comment to test without SDCard insert.
 	printf("Done. \r\n");
 
 	printf("\n Initialization completed. \r\n");
@@ -290,8 +290,8 @@ int main(void) {
 			// --- STEP N°39 : Reset Flag DataTHRdy
 			Flag_DataTHRdy = 0;
 		}
-
-		// --- STEP N°40 & N°41 : Flag DataTHRdy -------------------------------
+//
+//		 --- STEP N°40 & N°41 : Flag DataTHRdy -------------------------------
 		else if (Flag_DataPressRdy == 1) {
 			printf("Pressure sensor OK\r\n");
 			SENSOR_lps22hh_Read_Data();
@@ -306,18 +306,18 @@ int main(void) {
 		}
 
 		// --- STEP N°50 & N°51 : Flag DataWDirRdy -----------------------------
-		else if (Flag_DataWDirRdy == 1) {
-			printf("Wind Direction sensor OK\r\n");
-			SENSOR_WDir_Read_Data();
-			SENSOR_WDir_Add_Data();
-
-			// --- STEP N°52 : Screen Refresh
-			if (currentScreen == 5) {
-				Display_LCD_Pages(currentScreen);
-			}
-			// --- STEP N°59 : Reset Flag DataWDirRdy
-			Flag_DataWDirRdy = 0;
-		}
+//		else if (Flag_DataWDirRdy == 1) {
+//			printf("Wind Direction sensor OK\r\n");
+//			SENSOR_WDir_Read_Data();
+//			SENSOR_WDir_Add_Data();
+//
+//			// --- STEP N°52 : Screen Refresh
+//			if (currentScreen == 5) {
+//				Display_LCD_Pages(currentScreen);
+//			}
+//			// --- STEP N°59 : Reset Flag DataWDirRdy
+//			Flag_DataWDirRdy = 0;
+//		}
 
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
@@ -347,7 +347,7 @@ int main(void) {
 
 			switch (MesCpt) {
 			case 0:
-				// --- STEP N°71 : Humidity & Temperature
+//				// --- STEP N°71 : Humidity & Temperature
 				SENSOR_hts221_Start_Conversion();
 				MesCpt = 1;
 				break;
@@ -357,11 +357,11 @@ int main(void) {
 				MesCpt = 2;
 				break;
 			case 2:
-				// --- STEP N°73 & N°74 : Wind Speed
+//				// --- STEP N°73 & N°74 : Wind Speed
 				SENSOR_WindSpeed_Read_Data();
 				SENSOR_WindSpeed_Add_Data();
 
-				// --- STEP N°75 : Screen Refresh
+//				// --- STEP N°75 : Screen Refresh
 				if (currentScreen == 4) {
 					Display_LCD_Pages(currentScreen);
 				}

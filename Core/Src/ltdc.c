@@ -257,7 +257,7 @@ void HAL_LTDC_MspDeInit(LTDC_HandleTypeDef *ltdcHandle) {
 						| GPIO_PIN_14);
 
 		HAL_GPIO_DeInit(GPIOK,
-				GPIO_PIN_7 | GPIO_PIN_6 | GPIO_PIN_5 | GPIO_PIN_0);
+		GPIO_PIN_7 | GPIO_PIN_6 | GPIO_PIN_5 | GPIO_PIN_0);
 
 		HAL_GPIO_DeInit(GPIOD, GPIO_PIN_3);
 
