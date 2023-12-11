@@ -205,7 +205,8 @@ int main(void) {
 	}
 	/* Set Alarm to occur every hour */
 	sAlarm.Alarm = RTC_ALARM_A;
-    sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | 0x00 | RTC_ALARMMASK_MINUTES | RTC_ALARMMASK_SECONDS;
+	sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | 0x00 | RTC_ALARMMASK_MINUTES
+			| RTC_ALARMMASK_SECONDS;
 	if (HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK) {
 		Error_Handler(); /* Initialization Error */
 	}
