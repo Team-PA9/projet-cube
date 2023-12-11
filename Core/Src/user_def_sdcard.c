@@ -104,14 +104,15 @@ void SDCARD_NewLog(FIL *fp, const char *filename) {
 	if (f_open(fp, filename, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
 		Error_Handler();
 	} else {
-		f_puts("Capteur, Time,", fp);
+		f_puts("Capteur,Time", fp);
 		int i = 0;
 		while (i <= 99) {
 			char titleString[10];
-			sprintf(titleString, "Mesure %d", i + 1);
+			sprintf(titleString, ",Mesure %d", i + 1);
 			f_puts(titleString, fp);
 			i++;
 		}
+		f_puts("\n", fp);
 		f_close(fp);
 	}
 }
@@ -123,22 +124,20 @@ void SDCARD_AddLog_WD(FIL *fp, const char *filename, const char *sensor,
 	} else {
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
-		f_puts(",", fp);
 		char timeString[64];
 		HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
 		HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-		sprintf(timeString, "%4d-%2d-%2dT%2d:%2d:%2dZ,",
+		sprintf(timeString, ",%4d-%02d-%02dT%02d:%02d:%02dZ",
 				gdatestructureget.Year + 2000, gdatestructureget.Month,
 				gdatestructureget.Date, gtimestructureget.Hours,
 				gtimestructureget.Minutes, gtimestructureget.Seconds);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
-			sprintf(valueString, "%s", compassDirections[values[i]]);
-			f_puts(",", fp);
+			sprintf(valueString, ",%s", compassDirections[values[i]]);
 			f_puts(valueString, fp);
 		}
-		f_puts("\r\n", fp);
+		f_puts("\n", fp);
 		f_close(fp);
 	}
 }
@@ -150,22 +149,20 @@ void SDCARD_AddLog_Rf(FIL *fp, const char *filename, const char *sensor,
 	} else {
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
-		f_puts(",", fp);
 		char timeString[64];
 		HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
 		HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-		sprintf(timeString, "%4d-%2d-%2dT%2d:%2d:%2dZ,",
+		sprintf(timeString, ",%4d-%02d-%02dT%02d:%02d:%02dZ",
 				gdatestructureget.Year + 2000, gdatestructureget.Month,
 				gdatestructureget.Date, gtimestructureget.Hours,
 				gtimestructureget.Minutes, gtimestructureget.Seconds);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
-			sprintf(valueString, "%lf", values[i]);
-			f_puts(",", fp);
+			sprintf(valueString, ",%lf", values[i]);
 			f_puts(valueString, fp);
 		}
-		f_puts("\r\n", fp);
+		f_puts("\n", fp);
 		f_close(fp);
 	}
 }
@@ -177,22 +174,20 @@ void SDCARD_AddLog_HTPWS(FIL *fp, const char *filename, const char *sensor,
 	} else {
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
-		f_puts(",", fp);
 		char timeString[64];
 		HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
 		HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-		sprintf(timeString, "%4d-%2d-%2dT%2d:%2d:%2dZ,",
+		sprintf(timeString, ",%4d-%02d-%02dT%02d:%02d:%02dZ",
 				gdatestructureget.Year + 2000, gdatestructureget.Month,
 				gdatestructureget.Date, gtimestructureget.Hours,
 				gtimestructureget.Minutes, gtimestructureget.Seconds);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
-			sprintf(valueString, "%f", values[i]);
-			f_puts(",", fp);
+			sprintf(valueString, ",%f", values[i]);
 			f_puts(valueString, fp);
 		}
-		f_puts("\r\n", fp);
+		f_puts("\n", fp);
 		f_close(fp);
 	}
 }
