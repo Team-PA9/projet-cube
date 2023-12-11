@@ -6,6 +6,7 @@
 #include "stm32746g_discovery_lcd.h"
 #include "user_def_sdcard.h"
 #include "user_def_screen.h"
+#include "user_def_rtc.h"
 
 /* SDCARD variables ----------------------------------------------------------*/
 FIL file1; /* File read buffer */
@@ -33,10 +34,8 @@ extern uint8_t Flag_SaveWS;
 extern uint8_t Flag_SaveWD;
 extern uint8_t Flag_SaveRf;
 
-extern RTC_TimeTypeDef stimestructure;
-extern RTC_TimeTypeDef gtimestructureget;
-extern RTC_DateTypeDef sdatestructure;
-extern RTC_DateTypeDef gdatestructureget;
+extern RTC_TimeTypeDef sTime1;
+extern RTC_DateTypeDef sDate1;
 extern RTC_HandleTypeDef hrtc;
 
 /* SDCARD functions ----------------------------------------------------------*/
@@ -54,6 +53,7 @@ void SDCARD_Init(void) {
 }
 
 void SDCARD_Actualization(void) {
+    printf("Saving measurements to SD card...\r\n");
 	Display_LCD_SavingLog();
 	// Interruption hts221
 	if (Flag_SaveHT == 1) {
@@ -98,6 +98,7 @@ void SDCARD_Actualization(void) {
 	}
 
 	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "         ", LEFT_MODE);
+    printf("Measurements successfully saved to SD card.\r\n");
 }
 
 void SDCARD_NewLog(FIL *fp, const char *filename) {
@@ -124,13 +125,9 @@ void SDCARD_AddLog_WD(FIL *fp, const char *filename, const char *sensor,
 	} else {
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
-		char timeString[64];
-		HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
-		HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-		sprintf(timeString, ",%4d-%02d-%02dT%02d:%02d:%02dZ",
-				gdatestructureget.Year + 2000, gdatestructureget.Month,
-				gdatestructureget.Date, gtimestructureget.Hours,
-				gtimestructureget.Minutes, gtimestructureget.Seconds);
+		f_puts(",", fp);
+        char timeString[20];
+        RTC_Get_UTC_Timestamp(timeString);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
@@ -149,13 +146,9 @@ void SDCARD_AddLog_Rf(FIL *fp, const char *filename, const char *sensor,
 	} else {
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
-		char timeString[64];
-		HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
-		HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-		sprintf(timeString, ",%4d-%02d-%02dT%02d:%02d:%02dZ",
-				gdatestructureget.Year + 2000, gdatestructureget.Month,
-				gdatestructureget.Date, gtimestructureget.Hours,
-				gtimestructureget.Minutes, gtimestructureget.Seconds);
+		f_puts(",", fp);
+        char timeString[20];
+        RTC_Get_UTC_Timestamp(timeString);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
@@ -174,13 +167,9 @@ void SDCARD_AddLog_HTPWS(FIL *fp, const char *filename, const char *sensor,
 	} else {
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
-		char timeString[64];
-		HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
-		HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-		sprintf(timeString, ",%4d-%02d-%02dT%02d:%02d:%02dZ",
-				gdatestructureget.Year + 2000, gdatestructureget.Month,
-				gdatestructureget.Date, gtimestructureget.Hours,
-				gtimestructureget.Minutes, gtimestructureget.Seconds);
+        f_puts(",", fp);
+        char timeString[20];
+        RTC_Get_UTC_Timestamp(timeString);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];

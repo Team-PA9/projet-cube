@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+uint8_t BCD_to_Dec(uint8_t bcd_value);
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

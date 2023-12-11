@@ -28,6 +28,7 @@
 #include "user_def_screen.h"
 #include "user_def_sdcard.h"
 #include "user_def_sensors.h"
+#include "user_def_rtc.h"
 
 /* USER CODE END Includes */
 
@@ -89,13 +90,6 @@ uint8_t Flag_SavePr = 0;
 uint8_t Flag_SaveWS = 0;
 uint8_t Flag_SaveWD = 0;
 uint8_t Flag_SaveRf = 0;
-
-// RTC Variables
-RTC_DateTypeDef sdatestructure;
-RTC_TimeTypeDef stimestructure;
-RTC_DateTypeDef gdatestructureget;
-RTC_TimeTypeDef gtimestructureget;
-RTC_AlarmTypeDef sAlarm;
 
 /* USER CODE END PV */
 
@@ -188,28 +182,7 @@ int main(void) {
 
 	// RTC Initialization
 	printf("\n - RTC \r\n");
-	/* Set Date: Monday January 1st 2023 */
-	sdatestructure.Year = 0x17;
-	sdatestructure.Month = RTC_MONTH_JANUARY;
-	sdatestructure.Date = 0x01;
-	sdatestructure.WeekDay = RTC_WEEKDAY_MONDAY;
-	if (HAL_RTC_SetDate(&hrtc, &sdatestructure, RTC_FORMAT_BCD) != HAL_OK) {
-		Error_Handler(); /* Initialization Error */
-	}
-	/* Set Time: 00:00:00 */
-	stimestructure.Hours = 0x00;
-	stimestructure.Minutes = 0x00;
-	stimestructure.Seconds = 0x00;
-	if (HAL_RTC_SetTime(&hrtc, &stimestructure, RTC_FORMAT_BCD) != HAL_OK) {
-		Error_Handler(); /* Initialization Error */
-	}
-	/* Set Alarm to occur every hour */
-	sAlarm.Alarm = RTC_ALARM_A;
-	sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | 0x00 | RTC_ALARMMASK_MINUTES
-			| RTC_ALARMMASK_SECONDS;
-	if (HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK) {
-		Error_Handler(); /* Initialization Error */
-	}
+	RTC_Init();
 	printf("Done. \r\n");
 
 	printf("\n Initialization completed. \r\n");
@@ -321,6 +294,10 @@ int main(void) {
 
 		// --- STEP N°70 : Flag Measure ----------------------------------------
 		if (Flag_Measure == 1) {
+			char buffer[20];
+			RTC_Get_UTC_Timestamp(buffer);
+			printf("Current time: %s\r\n", buffer);
+
 			switch (MesCpt) {
 			case 0:
 				// --- STEP N°71 : Humidity & Temperature
@@ -504,12 +481,10 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 }
 
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
-	HAL_GPIO_TogglePin(RLED_GPIO_Port, RLED_Pin);
 	RainfallCounter = 0;
 	Flag_Rainfall = 1;
 	printf("Rainfall counter reset\r\n");
 }
-
 /* USER CODE END 4 */
 
 /**
