@@ -35,6 +35,8 @@ extern uint8_t Flag_SaveRf;
 
 extern RTC_TimeTypeDef stimestructure;
 extern RTC_TimeTypeDef gtimestructureget;
+extern RTC_DateTypeDef sdatestructure;
+extern RTC_DateTypeDef gdatestructureget;
 extern RTC_HandleTypeDef hrtc;
 
 
@@ -50,7 +52,7 @@ void SDCARD_Init(void) {
 			SDCARD_NewLog(&file1, "LOG.CSV");
 		}
 	}
-	FATFS_UnLinkDriver(SDPath);
+	//FATFS_UnLinkDriver(SDPath);
 }
 
 void SDCARD_Actualization(void) {
@@ -121,54 +123,55 @@ void SDCARD_NewLog(FIL *fp, const char *filename) {
 
 void SDCARD_AddLog_int(FIL *fp, const char *filename, const char *sensor,
 		uint8_t values[], int index) {
-	FATFS_LinkDriver(&SD_Driver, SDPath);
-	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
-		Error_Handler();
-	} else {
+//	FATFS_LinkDriver(&SD_Driver, SDPath);
+//	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
+//		Error_Handler();
+//	} else {
 		if (f_open(fp, filename, FA_OPEN_EXISTING | FA_WRITE) != FR_OK) {
 			Error_Handler();
 		} else {
 			f_lseek(fp, f_size(fp));
-			//fseek(fp, 0, SEEK_END);  si on a besoin, tester
-			//f_puts("\r\n", fp) pour aller a gauche et sauter une ligne
-			//RTC_TimeTypeDef sTime;
-			//HAL_RTC_GetDate(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-			char timeString[20];
-			sprintf(timeString, "Time");
-			//sprintf(timeString, "Time: %02d:%02d:%02d\r\n", gtimestructureget.Hours,
-			//		gtimestructureget.Minutes, gtimestructureget.Seconds);
-			f_puts("\n", fp);
 			f_puts(sensor, fp);
 			f_puts(",", fp);
+			char timeString[64];
+			HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
+			HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
+			sprintf(timeString, "%4d-%2d-%2dT%2d:%2d:%2dZ,",
+					gdatestructureget.Year + 2000, gdatestructureget.Month,
+					gdatestructureget.Date, gtimestructureget.Hours,
+					gtimestructureget.Minutes, gtimestructureget.Seconds);
 			f_puts(timeString, fp);
 			for (int i = 0; i < index; i++) {
 				char valueString[20];  // Adjust the buffer size as needed
 				sprintf(valueString, "%d", values[i]);
 				f_puts(",", fp);
 				f_puts(valueString, fp);
-	//			f_puts(values[i], fp);
 			}
 			f_close(fp);
 		}
-	}
-	FATFS_UnLinkDriver(SDPath);
+//	}
+//	FATFS_UnLinkDriver(SDPath);
 }
 
 void SDCARD_AddLog_dbl(FIL *fp, const char *filename, const char *sensor,
 		double values[], int index) {
-	FATFS_LinkDriver(&SD_Driver, SDPath);
-	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
-		Error_Handler();
-	} else {
+//	FATFS_LinkDriver(&SD_Driver, SDPath);
+//	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
+//		Error_Handler();
+//	} else {
 		if (f_open(fp, filename, FA_OPEN_EXISTING | FA_WRITE) != FR_OK) {
 			Error_Handler();
 		} else {
 			f_lseek(fp, f_size(fp));
-			char timeString[20];
-			sprintf(timeString, "Time");
-			f_puts("\n", fp);
 			f_puts(sensor, fp);
 			f_puts(",", fp);
+			char timeString[64];
+			HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
+			HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
+			sprintf(timeString, "%4d-%2d-%2dT%2d:%2d:%2dZ,",
+					gdatestructureget.Year + 2000, gdatestructureget.Month,
+					gdatestructureget.Date, gtimestructureget.Hours,
+					gtimestructureget.Minutes, gtimestructureget.Seconds);
 			f_puts(timeString, fp);
 			for (int i = 0; i < index; i++) {
 				char valueString[20];  // Adjust the buffer size as needed
@@ -178,25 +181,29 @@ void SDCARD_AddLog_dbl(FIL *fp, const char *filename, const char *sensor,
 			}
 			f_close(fp);
 		}
-	}
-	FATFS_UnLinkDriver(SDPath);
+//	}
+//	FATFS_UnLinkDriver(SDPath);
 }
 
 void SDCARD_AddLog_flt(FIL *fp, const char *filename, const char *sensor,
 		float values[], int index) {
-	FATFS_LinkDriver(&SD_Driver, SDPath);
-	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
-		Error_Handler();
-	} else {
+//	FATFS_LinkDriver(&SD_Driver, SDPath);
+//	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
+//		Error_Handler();
+//	} else {
 		if (f_open(fp, filename, FA_OPEN_EXISTING | FA_WRITE) != FR_OK) {
 			Error_Handler();
 		} else {
 			f_lseek(fp, f_size(fp));
-			char timeString[20];
-			sprintf(timeString, "Time");
-			f_puts("\n", fp);
 			f_puts(sensor, fp);
 			f_puts(",", fp);
+			char timeString[64];
+			HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
+			HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
+			sprintf(timeString, "%4d-%2d-%2dT%2d:%2d:%2dZ,",
+					gdatestructureget.Year + 2000, gdatestructureget.Month,
+					gdatestructureget.Date, gtimestructureget.Hours,
+					gtimestructureget.Minutes, gtimestructureget.Seconds);
 			f_puts(timeString, fp);
 			for (int i = 0; i < index; i++) {
 				char valueString[20];  // Adjust the buffer size as needed
@@ -206,6 +213,6 @@ void SDCARD_AddLog_flt(FIL *fp, const char *filename, const char *sensor,
 			}
 			f_close(fp);
 		}
-	}
-	FATFS_UnLinkDriver(SDPath);
+//	}
+//	FATFS_UnLinkDriver(SDPath);
 }

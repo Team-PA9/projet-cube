@@ -95,6 +95,7 @@ RTC_DateTypeDef sdatestructure;
 RTC_TimeTypeDef stimestructure;
 RTC_DateTypeDef gdatestructureget;
 RTC_TimeTypeDef gtimestructureget;
+RTC_AlarmTypeDef sAlarm;
 
 /* USER CODE END PV */
 
@@ -195,7 +196,6 @@ int main(void) {
 	if (HAL_RTC_SetDate(&hrtc, &sdatestructure, RTC_FORMAT_BCD) != HAL_OK) {
 		Error_Handler(); /* Initialization Error */
 	}
-
 	/* Set Time: 00:00:00 */
 	stimestructure.Hours = 0x00;
 	stimestructure.Minutes = 0x00;
@@ -203,17 +203,11 @@ int main(void) {
 	if (HAL_RTC_SetTime(&hrtc, &stimestructure, RTC_FORMAT_BCD) != HAL_OK) {
 		Error_Handler(); /* Initialization Error */
 	}
-
-	RTC_AlarmTypeDef sAlarm;
-
-	/*##-3- Configure the Alarm #################################################*/
 	/* Set Alarm to occur every hour */
 	sAlarm.Alarm = RTC_ALARM_A;
     sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | 0x00 | RTC_ALARMMASK_MINUTES | RTC_ALARMMASK_SECONDS;
-
 	if (HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK) {
-		/* Initialization Error */
-		Error_Handler();
+		Error_Handler(); /* Initialization Error */
 	}
 	printf("Done. \r\n");
 
@@ -310,32 +304,22 @@ int main(void) {
 			Flag_DataWDirRdy = 0;
 		}
 
+		// --- STEP N°60 & N°61 : Flag DataWDirRdy -----------------------------
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
 			SENSOR_Rain_Read_Data(RainfallCounterPtr);
 			SENSOR_Rain_Add_Data();
+
+			// --- STEP N°62 : Screen Refresh
 			if (currentScreen == 6) {
 				Display_LCD_Pages(currentScreen);
 			}
+			// --- STEP N°69 : Reset Flag DataWDirRdy
 			Flag_Rainfall = 0;
 		}
 
 		// --- STEP N°70 : Flag Measure ----------------------------------------
 		if (Flag_Measure == 1) {
-
-			//------------------------------------------------------------------
-			// For exemple, to remove when implemented where it should be
-			/* Get the RTC current Time & Date */
-			HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-			HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
-
-			/* Display time  & date ; Format : hh:mm:ss & mm-dd-yy */
-			printf("Time: %02d:%02d:%02d\r\n", gtimestructureget.Hours,
-					gtimestructureget.Minutes, gtimestructureget.Seconds);
-			printf("Date: %02d-%02d-%02d\r\n", gdatestructureget.Month,
-					gdatestructureget.Date, 2000 + gdatestructureget.Year);
-			//------------------------------------------------------------------
-
 			switch (MesCpt) {
 			case 0:
 				// --- STEP N°71 : Humidity & Temperature
