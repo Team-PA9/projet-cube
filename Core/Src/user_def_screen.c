@@ -73,6 +73,14 @@ void Display_LCD_BtnHome(void) {
 			(uint8_t*) "HOME", RIGHT_MODE);
 }
 
+void Display_LCD_SavingLog(void) {
+	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, ENABLE);
+	BSP_LCD_SelectLayer(LTDC_LAYER_2);
+	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
+	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "Saving...", LEFT_MODE);
+}
+
 void Display_LCD_Pages(int page) {
 	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);

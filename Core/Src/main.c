@@ -160,11 +160,6 @@ int main(void) {
 	HAL_TIM_Base_Start(&htim8);
 	SENSOR_lps22hh_Init();
 	SENSOR_hts221_Init();
-	index_HT = 0;
-	index_Pr = 0;
-	index_WS = 0;
-	index_WD = 0;
-	index_Rf = 0;
 	printf("Done. \r\n");
 
 	//SCREEN Initialization
@@ -190,30 +185,23 @@ int main(void) {
 	SDCARD_Init(); //Comment to test without SDCard insert.
 	printf("Done. \r\n");
 
-	printf("\n Initialization completed. \r\n");
-
 	// RTC Initialization
-	/*##-1- Configure the Date #################################################*/
+	printf("\n - RTC \r\n");
 	/* Set Date: Monday January 1st 2023 */
 	sdatestructure.Year = 0x17;
 	sdatestructure.Month = RTC_MONTH_JANUARY;
 	sdatestructure.Date = 0x01;
 	sdatestructure.WeekDay = RTC_WEEKDAY_MONDAY;
-
 	if (HAL_RTC_SetDate(&hrtc, &sdatestructure, RTC_FORMAT_BCD) != HAL_OK) {
-		/* Initialization Error */
-		Error_Handler();
+		Error_Handler(); /* Initialization Error */
 	}
 
-	/*##-2- Configure the Time #################################################*/
 	/* Set Time: 00:00:00 */
 	stimestructure.Hours = 0x00;
 	stimestructure.Minutes = 0x00;
 	stimestructure.Seconds = 0x00;
-
 	if (HAL_RTC_SetTime(&hrtc, &stimestructure, RTC_FORMAT_BCD) != HAL_OK) {
-		/* Initialization Error */
-		Error_Handler();
+		Error_Handler(); /* Initialization Error */
 	}
 
 	RTC_AlarmTypeDef sAlarm;
@@ -227,6 +215,9 @@ int main(void) {
 		/* Initialization Error */
 		Error_Handler();
 	}
+	printf("Done. \r\n");
+
+	printf("\n Initialization completed. \r\n");
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -290,8 +281,8 @@ int main(void) {
 			// --- STEP N°39 : Reset Flag DataTHRdy
 			Flag_DataTHRdy = 0;
 		}
-//
-//		 --- STEP N°40 & N°41 : Flag DataTHRdy -------------------------------
+
+		// --- STEP N°40 & N°41 : Flag DataTHRdy -------------------------------
 		else if (Flag_DataPressRdy == 1) {
 			printf("Pressure sensor OK\r\n");
 			SENSOR_lps22hh_Read_Data();
@@ -306,18 +297,18 @@ int main(void) {
 		}
 
 		// --- STEP N°50 & N°51 : Flag DataWDirRdy -----------------------------
-//		else if (Flag_DataWDirRdy == 1) {
-//			printf("Wind Direction sensor OK\r\n");
-//			SENSOR_WDir_Read_Data();
-//			SENSOR_WDir_Add_Data();
-//
-//			// --- STEP N°52 : Screen Refresh
-//			if (currentScreen == 5) {
-//				Display_LCD_Pages(currentScreen);
-//			}
-//			// --- STEP N°59 : Reset Flag DataWDirRdy
-//			Flag_DataWDirRdy = 0;
-//		}
+		else if (Flag_DataWDirRdy == 1) {
+			printf("Wind Direction sensor OK\r\n");
+			SENSOR_WDir_Read_Data();
+			SENSOR_WDir_Add_Data();
+
+			// --- STEP N°52 : Screen Refresh
+			if (currentScreen == 5) {
+				Display_LCD_Pages(currentScreen);
+			}
+			// --- STEP N°59 : Reset Flag DataWDirRdy
+			Flag_DataWDirRdy = 0;
+		}
 
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
@@ -332,22 +323,22 @@ int main(void) {
 		// --- STEP N°70 : Flag Measure ----------------------------------------
 		if (Flag_Measure == 1) {
 
+			//------------------------------------------------------------------
 			// For exemple, to remove when implemented where it should be
-			/* Get the RTC current Time */
+			/* Get the RTC current Time & Date */
 			HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-			/* Get the RTC current Date */
 			HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
 
-			/* Display time Format : hh:mm:ss */
+			/* Display time  & date ; Format : hh:mm:ss & mm-dd-yy */
 			printf("Time: %02d:%02d:%02d\r\n", gtimestructureget.Hours,
 					gtimestructureget.Minutes, gtimestructureget.Seconds);
-			/* Display date Format : mm-dd-yy */
 			printf("Date: %02d-%02d-%02d\r\n", gdatestructureget.Month,
 					gdatestructureget.Date, 2000 + gdatestructureget.Year);
+			//------------------------------------------------------------------
 
 			switch (MesCpt) {
 			case 0:
-//				// --- STEP N°71 : Humidity & Temperature
+				// --- STEP N°71 : Humidity & Temperature
 				SENSOR_hts221_Start_Conversion();
 				MesCpt = 1;
 				break;
@@ -357,11 +348,11 @@ int main(void) {
 				MesCpt = 2;
 				break;
 			case 2:
-//				// --- STEP N°73 & N°74 : Wind Speed
+				// --- STEP N°73 & N°74 : Wind Speed
 				SENSOR_WindSpeed_Read_Data();
 				SENSOR_WindSpeed_Add_Data();
 
-//				// --- STEP N°75 : Screen Refresh
+				// --- STEP N°75 : Screen Refresh
 				if (currentScreen == 4) {
 					Display_LCD_Pages(currentScreen);
 				}
@@ -373,33 +364,32 @@ int main(void) {
 				MesCpt = 0;
 				break;
 			}
-
 			// --- STEP N°79 : Reset Flag Measure
 			Flag_Measure = 0;
 		}
 
 		// --- STEP N°80 to N°89 : Save HT in SDCard ---------------------------
-		else if (index_HT == 99) {
+		else if (index_HT >= 9) {
 			Flag_SaveHT = 1;
 			SDCARD_Actualization();
 		}
 		// --- STEP N°90 to N°99 : Save Pr in SDCard ---------------------------
-		else if (index_Pr == 99) {
+		else if (index_Pr >= 9) {
 			Flag_SavePr = 1;
 			SDCARD_Actualization();
 		}
-		// --- STEP N°100 to N°109 : Save WS in SDCard ---------------------------
-		else if (index_WS == 99) {
+		// --- STEP N°100 to N°109 : Save WS in SDCard -------------------------
+		else if (index_WS >= 9) {
 			Flag_SaveWS = 1;
 			SDCARD_Actualization();
 		}
-		// --- STEP N°110 to N°119 : Save WD in SDCard ---------------------------
-		else if (index_WD == 99) {
+		// --- STEP N°110 to N°119 : Save WD in SDCard -------------------------
+		else if (index_WD >= 9) {
 			Flag_SaveWD = 1;
 			SDCARD_Actualization();
 		}
-		// --- STEP N°120 to N°129 : Save Rf in SDCard ---------------------------
-		else if (index_Rf == 99) {
+		// --- STEP N°120 to N°129 : Save Rf in SDCard -------------------------
+		else if (index_Rf >= 9) {
 			Flag_SaveRf = 1;
 			SDCARD_Actualization();
 		}
@@ -523,6 +513,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	}
 }
 
+//HAL ADC Conversion Callback
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	Flag_DataWDirRdy = 1;
 }
