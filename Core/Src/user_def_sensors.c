@@ -44,11 +44,11 @@ float log_windspeed[100];
 uint8_t log_wind_direction[100];
 double log_rainfall[100];
 
-int index_HT;
-int index_Pr;
-int index_WS;
-int index_WD;
-int index_Rf;
+int index_HT = 0;
+int index_Pr = 0;
+int index_WS = 0;
+int index_WD = 0;
+int index_Rf = 0;
 
 /* SENSORS functions ---------------------------------------------------------*/
 //SENSORS GEN

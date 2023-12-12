@@ -28,6 +28,7 @@
 #include "user_def_screen.h"
 #include "user_def_sdcard.h"
 #include "user_def_sensors.h"
+#include "user_def_rtc.h"
 
 /* USER CODE END Includes */
 
@@ -89,12 +90,6 @@ uint8_t Flag_SavePr = 0;
 uint8_t Flag_SaveWS = 0;
 uint8_t Flag_SaveWD = 0;
 uint8_t Flag_SaveRf = 0;
-
-// RTC Variables
-RTC_DateTypeDef sdatestructure;
-RTC_TimeTypeDef stimestructure;
-RTC_DateTypeDef gdatestructureget;
-RTC_TimeTypeDef gtimestructureget;
 
 /* USER CODE END PV */
 
@@ -160,11 +155,6 @@ int main(void) {
 	HAL_TIM_Base_Start(&htim8);
 	SENSOR_lps22hh_Init();
 	SENSOR_hts221_Init();
-	index_HT = 0;
-	index_Pr = 0;
-	index_WS = 0;
-	index_WD = 0;
-	index_Rf = 0;
 	printf("Done. \r\n");
 
 	//SCREEN Initialization
@@ -187,46 +177,15 @@ int main(void) {
 
 	//SDCARD Initialization
 	printf("\n - SDCard \r\n");
-	// SDCARD_Init(); //Comment to test without SDCard insert.
+	SDCARD_Init(); //Comment to test without SDCard insert.
+	printf("Done. \r\n");
+
+	// RTC Initialization
+	printf("\n - RTC \r\n");
+	RTC_Init();
 	printf("Done. \r\n");
 
 	printf("\n Initialization completed. \r\n");
-
-	// RTC Initialization
-	/*##-1- Configure the Date #################################################*/
-	/* Set Date: Monday January 1st 2023 */
-	sdatestructure.Year = 0x17;
-	sdatestructure.Month = RTC_MONTH_JANUARY;
-	sdatestructure.Date = 0x01;
-	sdatestructure.WeekDay = RTC_WEEKDAY_MONDAY;
-
-	if (HAL_RTC_SetDate(&hrtc, &sdatestructure, RTC_FORMAT_BCD) != HAL_OK) {
-		/* Initialization Error */
-		Error_Handler();
-	}
-
-	/*##-2- Configure the Time #################################################*/
-	/* Set Time: 00:00:00 */
-	stimestructure.Hours = 0x00;
-	stimestructure.Minutes = 0x00;
-	stimestructure.Seconds = 0x00;
-
-	if (HAL_RTC_SetTime(&hrtc, &stimestructure, RTC_FORMAT_BCD) != HAL_OK) {
-		/* Initialization Error */
-		Error_Handler();
-	}
-
-	RTC_AlarmTypeDef sAlarm;
-
-	/*##-3- Configure the Alarm #################################################*/
-	/* Set Alarm to occur every hour */
-	sAlarm.Alarm = RTC_ALARM_A;
-    sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | 0x00 | RTC_ALARMMASK_MINUTES | RTC_ALARMMASK_SECONDS;
-
-	if (HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK) {
-		/* Initialization Error */
-		Error_Handler();
-	}
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -319,31 +278,25 @@ int main(void) {
 			Flag_DataWDirRdy = 0;
 		}
 
+		// --- STEP N°60 & N°61 : Flag DataRfRdy -----------------------------
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
 			SENSOR_Rain_Read_Data(RainfallCounterPtr);
 			SENSOR_Rain_Add_Data();
+
+			// --- STEP N°62 : Screen Refresh
 			if (currentScreen == 6) {
 				Display_LCD_Pages(currentScreen);
 			}
+			// --- STEP N°69 : Reset Flag DataRfRdy
 			Flag_Rainfall = 0;
 		}
 
 		// --- STEP N°70 : Flag Measure ----------------------------------------
 		if (Flag_Measure == 1) {
-
-			// For exemple, to remove when implemented where it should be
-			/* Get the RTC current Time */
-			HAL_RTC_GetTime(&hrtc, &gtimestructureget, RTC_FORMAT_BCD);
-			/* Get the RTC current Date */
-			HAL_RTC_GetDate(&hrtc, &gdatestructureget, RTC_FORMAT_BCD);
-
-			/* Display time Format : hh:mm:ss */
-			printf("Time: %02d:%02d:%02d\r\n", gtimestructureget.Hours,
-					gtimestructureget.Minutes, gtimestructureget.Seconds);
-			/* Display date Format : mm-dd-yy */
-			printf("Date: %02d-%02d-%02d\r\n", gdatestructureget.Month,
-					gdatestructureget.Date, 2000 + gdatestructureget.Year);
+			char buffer[20];
+			RTC_Get_UTC_Timestamp(buffer);
+			printf("Current time: %s\r\n", buffer);
 
 			switch (MesCpt) {
 			case 0:
@@ -373,38 +326,37 @@ int main(void) {
 				MesCpt = 0;
 				break;
 			}
-
 			// --- STEP N°79 : Reset Flag Measure
 			Flag_Measure = 0;
 		}
 
 		// --- STEP N°80 to N°89 : Save HT in SDCard ---------------------------
-		else if (index_HT == 99) {
+		else if (index_HT >= 9) {
 			Flag_SaveHT = 1;
 			SDCARD_Actualization();
 		}
 		// --- STEP N°90 to N°99 : Save Pr in SDCard ---------------------------
-		else if (index_Pr == 99) {
+		else if (index_Pr >= 9) {
 			Flag_SavePr = 1;
 			SDCARD_Actualization();
 		}
-		// --- STEP N°100 to N°109 : Save WS in SDCard ---------------------------
-		else if (index_WS == 99) {
+		// --- STEP N°100 to N°109 : Save WS in SDCard -------------------------
+		else if (index_WS >= 9) {
 			Flag_SaveWS = 1;
 			SDCARD_Actualization();
 		}
-		// --- STEP N°110 to N°119 : Save WD in SDCard ---------------------------
-		else if (index_WD == 99) {
+		// --- STEP N°110 to N°119 : Save WD in SDCard -------------------------
+		else if (index_WD >= 9) {
 			Flag_SaveWD = 1;
 			SDCARD_Actualization();
 		}
-		// --- STEP N°120 to N°129 : Save Rf in SDCard ---------------------------
-		else if (index_Rf == 99) {
+		// --- STEP N°120 to N°129 : Save Rf in SDCard -------------------------
+		else if (index_Rf >= 9) {
 			Flag_SaveRf = 1;
 			SDCARD_Actualization();
 		}
 
-		// --- STEP N°130 : Flag Inactivity ------------------------------------
+// --- STEP N°130 : Flag Inactivity ------------------------------------
 		else if (SCREEN_InactivityCpt >= 31) {
 			if (SCREEN_State == 1) {
 				printf("Screen OFF \r\n");
@@ -523,17 +475,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	}
 }
 
+//HAL ADC Conversion Callback
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	Flag_DataWDirRdy = 1;
 }
 
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
-	HAL_GPIO_TogglePin(RLED_GPIO_Port, RLED_Pin);
 	RainfallCounter = 0;
 	Flag_Rainfall = 1;
 	printf("Rainfall counter reset\r\n");
 }
-
 /* USER CODE END 4 */
 
 /**

@@ -8,7 +8,9 @@
 /* SDCARD functions declaration ----------------------------------------------*/
 void SDCARD_Init(void);
 void SDCARD_Actualization(void);
-void new_log(FIL*, const char*, const char*);
-void add_log(FIL*, const char*, char*, float, const char*);
+void SDCARD_NewLog(FIL*, const char*);
+void SDCARD_AddLog_WD(FIL*, const char*, const char*, uint8_t[], int);
+void SDCARD_AddLog_Rf(FIL*, const char*, const char*, double[], int);
+void SDCARD_AddLog_HTPWS(FIL*, const char*, const char*, float[], int);
 
 #endif /* INC_USER_DEF_SDCARD_H_ */
