@@ -4,6 +4,7 @@
 #include "stm32746g_discovery_lcd.h"
 #include "stm32746g_discovery_ts.h"
 #include "user_def_screen.h"
+#include "user_def_rtc.h"
 
 /* SCREEN variables ----------------------------------------------------------*/
 uint8_t firstTimeOnScreen = 0;
@@ -25,12 +26,12 @@ extern double log_rainfall[];
 
 extern char *compassDirections[];
 
-uint8_t RTC_hour = 5;
-uint8_t RTC_minute = 16;
-uint8_t RTC_second = 4;
-uint8_t RTC_day = 28;
-uint8_t RTC_month = 5;
-uint8_t RTC_year = 19;
+uint8_t RTC_hour = 0;
+uint8_t RTC_minute = 0;
+uint8_t RTC_second = 0;
+uint8_t RTC_day = 0;
+uint8_t RTC_month = 0;
+uint8_t RTC_year = 0;
 char *Month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
 		"Oct", "Nov", "Dec" };
 
@@ -95,12 +96,20 @@ void Display_LCD_ModelTD(uint16_t TS_x, uint16_t TS_y) {
 	BSP_LCD_DrawRect((TS_x - 40), (TS_y + 20), 80, 40);
 }
 
-void Display_LCD_SavingLog(void) {
+void Display_LCD_Saving(void) {
 	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, ENABLE);
 	BSP_LCD_SelectLayer(LTDC_LAYER_2);
 	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "Saving...", LEFT_MODE);
+}
+
+void Display_LCD_Loading(void) {
+	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, ENABLE);
+	BSP_LCD_SelectLayer(LTDC_LAYER_2);
+	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
+	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "Loading...", LEFT_MODE);
 }
 
 void Display_LCD_Pages(int page) {
@@ -227,6 +236,10 @@ void Display_LCD_Pages(int page) {
 		break;
 	case 10:
 		if (firstTimeOnScreen == 1) {
+			Display_LCD_Loading();
+			RTC_Get_Split(&RTC_year, &RTC_month, &RTC_day,
+					&RTC_hour, &RTC_minute, &RTC_second);
+            
 			currentScreen = 10;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "Time & Date settings :",
@@ -314,6 +327,8 @@ void TS_Actualization(void) {
 		}
 	} else if (currentScreen == 10) { //TS for Time & Date Parameters
 		if ((410 < TS_x) && (TS_x < 450) && (TS_y > 108) && (TS_y < 148)) {
+            Display_LCD_Saving();
+            RTC_Set(RTC_hour, RTC_minute, RTC_second, RTC_day, RTC_month, RTC_year);
 			Display_LCD_Pages(0);
 		} else if ((75 < TS_x) && (TS_x < 95) && (TS_y > 125) && (TS_y < 145)) {
 			Incr_Value(&RTC_hour, 0, 23);
