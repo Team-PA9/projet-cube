@@ -97,7 +97,8 @@ void SDCARD_Actualization(void) {
 		Flag_SaveWD = 0;
 	}
 
-	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "         ", LEFT_MODE);
+	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, DISABLE);
+	BSP_LCD_SelectLayer(LTDC_LAYER_1);
 	printf("Measurements successfully saved to SD card.\r\n");
 }
 

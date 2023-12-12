@@ -37,10 +37,10 @@ char *Month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
 
 /* SCREEN functions ----------------------------------------------------------*/
 void Display_LCD_Init(void) {
-	BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, SDRAM_DEVICE_ADDR);
-	BSP_LCD_SetLayerVisible(LTDC_ACTIVE_LAYER, ENABLE);
+	BSP_LCD_LayerDefaultInit(LTDC_LAYER_1, SDRAM_DEVICE_ADDR);
+	BSP_LCD_SetLayerVisible(LTDC_LAYER_1, ENABLE);
 	BSP_LCD_SetFont(&Font16);
-	BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
+	BSP_LCD_SelectLayer(LTDC_LAYER_1);
 
 	BSP_LCD_Clear(LCD_COLOR_BLACK);
 	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
@@ -109,8 +109,8 @@ void Display_LCD_ModelTD(uint16_t TS_x, uint16_t TS_y) {
 }
 
 void Display_LCD_Saving(void) {
-	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, ENABLE);
 	BSP_LCD_SelectLayer(LTDC_LAYER_2);
+	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, ENABLE);
 	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "Saving...", LEFT_MODE);
