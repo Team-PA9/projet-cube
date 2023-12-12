@@ -278,7 +278,7 @@ int main(void) {
 			Flag_DataWDirRdy = 0;
 		}
 
-		// --- STEP N°60 & N°61 : Flag DataWDirRdy -----------------------------
+		// --- STEP N°60 & N°61 : Flag DataRfRdy -----------------------------
 		else if (Flag_Rainfall == 1) {
 			printf("Rainfall sensor OK\r\n");
 			SENSOR_Rain_Read_Data(RainfallCounterPtr);
@@ -288,7 +288,7 @@ int main(void) {
 			if (currentScreen == 6) {
 				Display_LCD_Pages(currentScreen);
 			}
-			// --- STEP N°69 : Reset Flag DataWDirRdy
+			// --- STEP N°69 : Reset Flag DataRfRdy
 			Flag_Rainfall = 0;
 		}
 
@@ -356,7 +356,7 @@ int main(void) {
 			SDCARD_Actualization();
 		}
 
-		// --- STEP N°130 : Flag Inactivity ------------------------------------
+// --- STEP N°130 : Flag Inactivity ------------------------------------
 		else if (SCREEN_InactivityCpt >= 31) {
 			if (SCREEN_State == 1) {
 				printf("Screen OFF \r\n");
