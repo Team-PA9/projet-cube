@@ -38,14 +38,10 @@ char *Month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
 /* SCREEN functions ----------------------------------------------------------*/
 void Display_LCD_Init(void) {
 	BSP_LCD_LayerDefaultInit(LTDC_LAYER_1, SDRAM_DEVICE_ADDR);
+	BSP_LCD_SetFont(&Font20);
 	BSP_LCD_SetLayerVisible(LTDC_LAYER_1, ENABLE);
-	BSP_LCD_SetFont(&Font16);
 	BSP_LCD_SelectLayer(LTDC_LAYER_1);
-
 	BSP_LCD_Clear(LCD_COLOR_BLACK);
-	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "Menu Principal :", CENTER_MODE);
 }
 
 void Display_LCD_ON(void) {
@@ -98,10 +94,10 @@ void Display_LCD_ModelTD(uint16_t TS_x, uint16_t TS_y) {
 	BSP_LCD_FillCircle((TS_x + 20), (TS_y + 82), 14);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 	BSP_LCD_SetBackColor(LCD_COLOR_LIGHTRED);
-	BSP_LCD_DisplayStringAt((TS_x - 28), (TS_y + 71), (uint8_t*) "-",
+	BSP_LCD_DisplayStringAt((TS_x - 26), (TS_y + 74), (uint8_t*) "-",
 			LEFT_MODE);
 	BSP_LCD_SetBackColor(LCD_COLOR_LIGHTGREEN);
-	BSP_LCD_DisplayStringAt((TS_x + 13), (TS_y + 71), (uint8_t*) "+",
+	BSP_LCD_DisplayStringAt((TS_x + 13), (TS_y + 74), (uint8_t*) "+",
 			LEFT_MODE);
 	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
@@ -109,19 +105,13 @@ void Display_LCD_ModelTD(uint16_t TS_x, uint16_t TS_y) {
 }
 
 void Display_LCD_Saving(void) {
-	BSP_LCD_SelectLayer(LTDC_LAYER_2);
-	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, ENABLE);
-	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "Saving...", LEFT_MODE);
+	BSP_LCD_SetFont(&Font16);
+	BSP_LCD_DisplayStringAt(0, 255, (uint8_t*) "Saving...", RIGHT_MODE);
 }
 
 void Display_LCD_Loading(void) {
-	BSP_LCD_SetLayerVisible(LTDC_LAYER_2, ENABLE);
-	BSP_LCD_SelectLayer(LTDC_LAYER_2);
-	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "Loading...", LEFT_MODE);
+	BSP_LCD_SetFont(&Font16);
+	BSP_LCD_DisplayStringAt(0, 255, (uint8_t*) "Loading...", RIGHT_MODE);
 }
 
 void Display_LCD_Pages(int page) {
@@ -248,11 +238,11 @@ void Display_LCD_Pages(int page) {
 		break;
 	case 10:
 		if (firstTimeOnScreen == 1) {
+			currentScreen = 10;
 			Display_LCD_Loading();
 			RTC_Get_Split(&RTC_year, &RTC_month, &RTC_day, &RTC_hour,
 					&RTC_minute, &RTC_second);
-
-			currentScreen = 10;
+			BSP_LCD_SetFont(&Font20);
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "Time & Date settings :",
 					CENTER_MODE);
@@ -280,27 +270,27 @@ void Display_LCD_ActuPara(uint8_t type) {
 	switch (type) {
 	case 0:
 		sprintf(displayString, "%02d", RTC_hour);
-		BSP_LCD_DisplayStringAt(65, 90, (uint8_t*) displayString, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(65, 92, (uint8_t*) displayString, LEFT_MODE);
 		break;
 	case 1:
 		sprintf(displayString, "%02d", RTC_minute);
-		BSP_LCD_DisplayStringAt(175, 90, (uint8_t*) displayString, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(175, 92, (uint8_t*) displayString, LEFT_MODE);
 		break;
 	case 2:
 		sprintf(displayString, "%02d", RTC_second);
-		BSP_LCD_DisplayStringAt(285, 90, (uint8_t*) displayString, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(285, 92, (uint8_t*) displayString, LEFT_MODE);
 		break;
 	case 3:
 		sprintf(displayString, "%02d", RTC_day);
-		BSP_LCD_DisplayStringAt(65, 190, (uint8_t*) displayString, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(65, 192, (uint8_t*) displayString, LEFT_MODE);
 		break;
 	case 4:
 		sprintf(displayString, "%s", Month[RTC_month - 1]);
-		BSP_LCD_DisplayStringAt(165, 190, (uint8_t*) displayString, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(165, 192, (uint8_t*) displayString, LEFT_MODE);
 		break;
 	case 5:
 		sprintf(displayString, "20%02d", RTC_year);
-		BSP_LCD_DisplayStringAt(273, 190, (uint8_t*) displayString, LEFT_MODE);
+		BSP_LCD_DisplayStringAt(273, 192, (uint8_t*) displayString, LEFT_MODE);
 		break;
 	}
 }
@@ -351,6 +341,7 @@ void TS_Actualization(void) {
 			Display_LCD_Saving();
 			RTC_Set(RTC_hour, RTC_minute, RTC_second, RTC_day, RTC_month,
 					RTC_year);
+			BSP_LCD_SetFont(&Font20);
 			Display_LCD_Pages(0);
 		}
 		// Change hour value
