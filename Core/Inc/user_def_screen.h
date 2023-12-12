@@ -12,7 +12,7 @@ void Display_LCD_Btn(int, int, int, uint32_t);
 void Display_LCD_BtnSave(void);
 void Display_LCD_BtnHome(void);
 void Display_LCD_BtnPara(void);
-void Display_LCD_SavingLog(void);
+void Display_LCD_Saving(void);
 void Display_LCD_Pages(int);
 void Display_LCD_ModelTD(uint16_t, uint16_t);
 void Display_LCD_ActuPara(uint8_t);

@@ -54,7 +54,7 @@ void SDCARD_Init(void) {
 
 void SDCARD_Actualization(void) {
     printf("Saving measurements to SD card...\r\n");
-	Display_LCD_SavingLog();
+	Display_LCD_Saving();
 	// Interruption hts221
 	if (Flag_SaveHT == 1) {
 		SDCARD_AddLog_HTPWS(&file1, "LOG.CSV", "Temperature (°C)",
