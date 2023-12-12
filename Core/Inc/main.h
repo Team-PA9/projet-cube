@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+uint8_t BCD_to_Dec(uint8_t bcd_value);
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -57,8 +57,9 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define ETR_RAIN_Pin GPIO_PIN_15
-#define ETR_RAIN_GPIO_Port GPIOA
+#define IRQ_RAIN_Pin GPIO_PIN_15
+#define IRQ_RAIN_GPIO_Port GPIOA
+#define IRQ_RAIN_EXTI_IRQn EXTI15_10_IRQn
 #define ETR_WIND_Pin GPIO_PIN_3
 #define ETR_WIND_GPIO_Port GPIOI
 #define IRQ_PRESS_Pin GPIO_PIN_2
@@ -66,18 +67,12 @@ void Error_Handler(void);
 #define IRQ_PRESS_EXTI_IRQn EXTI2_IRQn
 #define uSD_Detect_Pin GPIO_PIN_13
 #define uSD_Detect_GPIO_Port GPIOC
-#define IRQ_TS_Pin GPIO_PIN_13
-#define IRQ_TS_GPIO_Port GPIOI
-#define IRQ_TS_EXTI_IRQn EXTI15_10_IRQn
 #define IRQ_TEMP_Pin GPIO_PIN_6
 #define IRQ_TEMP_GPIO_Port GPIOG
 #define IRQ_TEMP_EXTI_IRQn EXTI9_5_IRQn
 #define BTN2_Pin GPIO_PIN_9
 #define BTN2_GPIO_Port GPIOF
 #define BTN2_EXTI_IRQn EXTI9_5_IRQn
-#define BTN1_Pin GPIO_PIN_8
-#define BTN1_GPIO_Port GPIOF
-#define BTN1_EXTI_IRQn EXTI9_5_IRQn
 #define WIND_SPEED_Pin GPIO_PIN_0
 #define WIND_SPEED_GPIO_Port GPIOA
 #define BLED_Pin GPIO_PIN_9

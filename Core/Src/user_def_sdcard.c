@@ -3,38 +3,40 @@
 #include <string.h>
 #include "fatfs.h"
 #include "stm32746g_discovery_sdram.h"
+#include "stm32746g_discovery_lcd.h"
 #include "user_def_sdcard.h"
+#include "user_def_screen.h"
+#include "user_def_rtc.h"
 
 /* SDCARD variables ----------------------------------------------------------*/
-FIL file1, file2, file3, file4, file5, file6; /* File read buffer */
+FIL file1; /* File read buffer */
 uint32_t byteswritten; /* File write/read counts */
-float log_temperature[100];
-float log_pression[100];
-float log_direction[100];
-float log_vitesse[100];
-float log_pluviometre[100];
-float log_humidite[100];
 uint8_t workBuffer[_MAX_SS];
-int index_temp;
-int index_pres;
-int index_dir;
-int index_wind;
-int index_rain;
-int index_humi;
 
-extern float humidity_perc;
-extern float temperature_degC;
-extern float pressure_hPa;
-extern float windspeed_kph;
-extern float rainfall_mm;
-extern uint8_t wind_direction;
+extern int index_HT;
+extern int index_Pr;
+extern int index_WS;
+extern int index_WD;
+extern int index_Rf;
+
+extern float log_humidity[];
+extern float log_temperature[];
+extern float log_pressure[];
+extern float log_windspeed[];
+extern uint8_t log_wind_direction[];
+extern double log_rainfall[];
+
 extern char *compassDirections[];
 
-extern uint8_t save_temp_rdy;
-extern uint8_t save_pres_rdy;
-extern uint8_t save_wind_rdy;
-extern uint8_t save_dir_rdy;
-extern uint8_t save_rain_rdy;
+extern uint8_t Flag_SaveHT;
+extern uint8_t Flag_SavePr;
+extern uint8_t Flag_SaveWS;
+extern uint8_t Flag_SaveWD;
+extern uint8_t Flag_SaveRf;
+
+extern RTC_TimeTypeDef sTime1;
+extern RTC_DateTypeDef sDate1;
+extern RTC_HandleTypeDef hrtc;
 
 /* SDCARD functions ----------------------------------------------------------*/
 void SDCARD_Init(void) {
@@ -45,106 +47,136 @@ void SDCARD_Init(void) {
 				sizeof(workBuffer)) != FR_OK) {
 			Error_Handler(); /* FatFs Format Error */
 		} else {
-			new_log(&file1, "LOG_Temp.txt", "Log temperature");
-			new_log(&file2, "LOG_Pres.txt", "Log pression");
-			new_log(&file3, "LOG_WDir.txt", "Log direction vent");
-			new_log(&file4, "LOG_WSpe.txt", "Log vitesse vent");
-			new_log(&file5, "LOG_Rain.txt", "Log pluviometrie");
-			new_log(&file6, "LOG_Humi.txt", "Log humidite");
+			SDCARD_NewLog(&file1, "LOG.CSV");
 		}
 	}
-	FATFS_UnLinkDriver(SDPath);
 }
 
 void SDCARD_Actualization(void) {
+	printf("Saving measurements to SD card...\r\n");
+	Display_LCD_Saving();
 	// Interruption hts221
-	if (save_temp_rdy == 1) {
-		// Pour la temperature
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f 'C ]", temperature_degC);
-		add_log(&file1, "LOG_Temp.txt", displayString, log_temperature,
-				temperature_degC, "°C");
-		index_temp++;
-		char displayString2[20];
-		// Pour l'humidite
-		sprintf(displayString2, "[ %6.2f %% ]", humidity_perc);
-		add_log(&file6, "LOG_Humi.txt", displayString2, log_humidite,
-				humidity_perc, "%");
-		index_rain++;
-		save_temp_rdy = 0;
+	if (Flag_SaveHT == 1) {
+		SDCARD_AddLog_HTPWS(&file1, "LOG.CSV", "Temperature (°C)",
+				log_temperature, index_HT);
+		SDCARD_AddLog_HTPWS(&file1, "LOG.CSV", "Humidite (%)", log_humidity,
+				index_HT);
+		index_HT = 0;
+		Flag_SaveHT = 0;
 	}
 
 	// Interruption lps22hh
-	if (save_pres_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f Pa ]", pressure_hPa);
-		add_log(&file2, "LOG_Pres.txt", displayString, log_pression,
-				pressure_hPa, "hPa");
-		index_pres++;
-		save_pres_rdy = 0;
+	else if (Flag_SavePr == 1) {
+		SDCARD_AddLog_HTPWS(&file1, "LOG.CSV", "Pression (HPa)", log_pressure,
+				index_Pr);
+		index_Pr = 0;
+		Flag_SavePr = 0;
 	}
 
-	// Interruption vitesse
-	if (save_wind_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f m/s ]", windspeed_kph);
-		add_log(&file3, "LOG_Wspe.txt", displayString, log_vitesse,
-				windspeed_kph, "km/h");
-		index_wind++;
-		save_wind_rdy = 0;
+	// Interruption Wind Speed
+	else if (Flag_SaveWS == 1) {
+		SDCARD_AddLog_HTPWS(&file1, "LOG.CSV", "Vitesse (m/s)", log_windspeed,
+				index_WS);
+		index_WS = 0;
+		Flag_SaveWS = 0;
 	}
 
-	// Interruption pluviometre
-	if (save_rain_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %6.2f mm/H ]", rainfall_mm);
-		add_log(&file5, "LOG_Rain.txt", displayString, log_pluviometre,
-				rainfall_mm, "mm");
-		index_rain++;
-		save_rain_rdy = 0;
+	// Interruption Rainfall
+	else if (Flag_SaveRf == 1) {
+		SDCARD_AddLog_Rf(&file1, "LOG.CSV", "Pluie (mm)", log_rainfall,
+				index_Rf);
+		index_Rf = 0;
+		Flag_SaveRf = 0;
 	}
 
-	// Interruption girouette
-	if (save_dir_rdy == 1) {
-		char displayString[20];
-		sprintf(displayString, "[ %s ]", compassDirections[wind_direction]);
-		add_log(&file5, "LOG_WDir.txt", displayString, log_pluviometre, sprintf("%s", compassDirections[wind_direction]), "");
-		index_dir++;
-		save_dir_rdy = 0;
+	// Interruption Wind Direction
+	else if (Flag_SaveWD == 1) {
+		SDCARD_AddLog_WD(&file1, "LOG.CSV", "Direction", log_wind_direction,
+				index_WD);
+		index_WD = 0;
+		Flag_SaveWD = 0;
 	}
-
+	BSP_LCD_DisplayStringAt(0, 255, (uint8_t*) "         ", RIGHT_MODE);
+	BSP_LCD_SetFont(&Font16);
+	printf("Measurements successfully saved to SD card.\r\n");
 }
 
-void new_log(FIL *fp, const char *filename, const char *content) {
-	FRESULT res;
-	uint32_t byteswritten;
+void SDCARD_NewLog(FIL *fp, const char *filename) {
 	if (f_open(fp, filename, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) {
 		Error_Handler();
 	} else {
-		res = f_write(fp, content, strlen(content), (void*) &byteswritten);
-
-		if ((byteswritten == 0) || (res != FR_OK)) {
-			Error_Handler();
-		} else {
-			f_close(fp);
+		f_puts("Capteur,Time", fp);
+		int i = 0;
+		while (i <= 99) {
+			char titleString[10];
+			sprintf(titleString, ",Mesure %d", i + 1);
+			f_puts(titleString, fp);
+			i++;
 		}
+		f_puts("\n", fp);
+		f_close(fp);
 	}
 }
 
-void add_log(FIL *fp, const char *filename, char *data, float tableau[], float value, const char *unit) {
-	FATFS_LinkDriver(&SD_Driver, SDPath);
-	if (f_mount(&SDFatFS, (TCHAR const*) SDPath, 0) != FR_OK) {
+void SDCARD_AddLog_WD(FIL *fp, const char *filename, const char *sensor,
+		uint8_t values[], int index) {
+	if (f_open(fp, filename, FA_OPEN_EXISTING | FA_WRITE) != FR_OK) {
 		Error_Handler();
 	} else {
-		if (f_open(fp, filename, FA_OPEN_APPEND | FA_WRITE) != FR_OK) {
-			Error_Handler();
-		} else {
-			f_puts("\n", fp);
-			f_puts(data, fp);
-			tableau[-1] = value;
-			f_close(fp);
+		f_lseek(fp, f_size(fp));
+		f_puts(sensor, fp);
+		f_puts(",", fp);
+		char timeString[20];
+		RTC_Get_UTC_Timestamp(timeString);
+		f_puts(timeString, fp);
+		for (int i = 0; i < index; i++) {
+			char valueString[20];
+			sprintf(valueString, ",%s", compassDirections[values[i]]);
+			f_puts(valueString, fp);
 		}
+		f_puts("\n", fp);
+		f_close(fp);
 	}
-	FATFS_UnLinkDriver(SDPath);
 }
 
+void SDCARD_AddLog_Rf(FIL *fp, const char *filename, const char *sensor,
+		double values[], int index) {
+	if (f_open(fp, filename, FA_OPEN_EXISTING | FA_WRITE) != FR_OK) {
+		Error_Handler();
+	} else {
+		f_lseek(fp, f_size(fp));
+		f_puts(sensor, fp);
+		f_puts(",", fp);
+		char timeString[20];
+		RTC_Get_UTC_Timestamp(timeString);
+		f_puts(timeString, fp);
+		for (int i = 0; i < index; i++) {
+			char valueString[20];
+			sprintf(valueString, ",%lf", values[i]);
+			f_puts(valueString, fp);
+		}
+		f_puts("\n", fp);
+		f_close(fp);
+	}
+}
+
+void SDCARD_AddLog_HTPWS(FIL *fp, const char *filename, const char *sensor,
+		float values[], int index) {
+	if (f_open(fp, filename, FA_OPEN_EXISTING | FA_WRITE) != FR_OK) {
+		Error_Handler();
+	} else {
+		f_lseek(fp, f_size(fp));
+		f_puts(sensor, fp);
+		f_puts(",", fp);
+		char timeString[20];
+		RTC_Get_UTC_Timestamp(timeString);
+		f_puts(timeString, fp);
+		for (int i = 0; i < index; i++) {
+			char valueString[20];
+			sprintf(valueString, ",%f", values[i]);
+			f_puts(valueString, fp);
+		}
+		f_puts("\n", fp);
+		f_close(fp);
+	}
+}
