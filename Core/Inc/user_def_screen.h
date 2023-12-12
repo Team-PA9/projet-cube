@@ -17,7 +17,7 @@ void Display_LCD_Pages(int);
 void Display_LCD_ModelTD(uint16_t, uint16_t);
 void Display_LCD_ActuPara(uint8_t);
 void Incr_Value(uint8_t*, uint8_t, uint8_t);
-
+void Decr_Value(uint8_t*, uint8_t, uint8_t);
 void TS_Actualization(void);
 
 #endif /* INC_USER_DEF_SCREEN_H_ */

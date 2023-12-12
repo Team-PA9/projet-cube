@@ -92,7 +92,19 @@ void Display_LCD_BtnPara(void) {
 }
 
 void Display_LCD_ModelTD(uint16_t TS_x, uint16_t TS_y) {
-	BSP_LCD_FillCircle(TS_x, (TS_y + 82), 14);
+	BSP_LCD_SetTextColor(LCD_COLOR_LIGHTRED);
+	BSP_LCD_FillCircle((TS_x - 20), (TS_y + 82), 14);
+	BSP_LCD_SetTextColor(LCD_COLOR_LIGHTGREEN);
+	BSP_LCD_FillCircle((TS_x + 20), (TS_y + 82), 14);
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+	BSP_LCD_SetBackColor(LCD_COLOR_LIGHTRED);
+	BSP_LCD_DisplayStringAt((TS_x - 28), (TS_y + 71), (uint8_t*) "-",
+			LEFT_MODE);
+	BSP_LCD_SetBackColor(LCD_COLOR_LIGHTGREEN);
+	BSP_LCD_DisplayStringAt((TS_x + 13), (TS_y + 71), (uint8_t*) "+",
+			LEFT_MODE);
+	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
+	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	BSP_LCD_DrawRect((TS_x - 40), (TS_y + 20), 80, 40);
 }
 
@@ -237,9 +249,9 @@ void Display_LCD_Pages(int page) {
 	case 10:
 		if (firstTimeOnScreen == 1) {
 			Display_LCD_Loading();
-			RTC_Get_Split(&RTC_year, &RTC_month, &RTC_day,
-					&RTC_hour, &RTC_minute, &RTC_second);
-            
+			RTC_Get_Split(&RTC_year, &RTC_month, &RTC_day, &RTC_hour,
+					&RTC_minute, &RTC_second);
+
 			currentScreen = 10;
 			BSP_LCD_Clear(LCD_COLOR_BLACK);
 			BSP_LCD_DisplayStringAt(0, 10, (uint8_t*) "Time & Date settings :",
@@ -302,6 +314,15 @@ void Incr_Value(uint8_t *value, uint8_t min, uint8_t max) {
 	printf("Incr : %d \r\n", (int) *value);
 }
 
+void Decr_Value(uint8_t *value, uint8_t min, uint8_t max) {
+	if (*value <= min) {
+		*value = max;
+	} else {
+		*value = *value - 1;
+	}
+	printf("Decr : %d \r\n", (int) *value);
+}
+
 void TS_Actualization(void) {
 	if (currentScreen == 0) { //TS for Main Screen
 		firstTimeOnScreen = 1;
@@ -322,35 +343,66 @@ void TS_Actualization(void) {
 		} else if ((250 < TS_x) && (TS_x < 310) && (TS_y > 202)
 				&& (TS_y < 262)) {
 			Display_LCD_Pages(6);
-		} else if ((25 < TS_x) && (TS_x < 55) && (TS_y > 5) && (TS_y < 35)) {
+		} else if ((20 < TS_x) && (TS_x < 60) && (TS_y > 0) && (TS_y < 40)) {
 			Display_LCD_Pages(10);
 		}
 	} else if (currentScreen == 10) { //TS for Time & Date Parameters
 		if ((410 < TS_x) && (TS_x < 450) && (TS_y > 108) && (TS_y < 148)) {
-            Display_LCD_Saving();
-            RTC_Set(RTC_hour, RTC_minute, RTC_second, RTC_day, RTC_month, RTC_year);
+			Display_LCD_Saving();
+			RTC_Set(RTC_hour, RTC_minute, RTC_second, RTC_day, RTC_month,
+					RTC_year);
 			Display_LCD_Pages(0);
-		} else if ((75 < TS_x) && (TS_x < 95) && (TS_y > 125) && (TS_y < 145)) {
+		}
+		// Change hour value
+		else if ((95 < TS_x) && (TS_x < 115) && (TS_y > 125) && (TS_y < 145)) {
 			Incr_Value(&RTC_hour, 0, 23);
 			Display_LCD_ActuPara(0);
-		} else if ((185 < TS_x) && (TS_x < 205) && (TS_y > 125)
-				&& (TS_y < 145)) {
+		} else if ((55 < TS_x) && (TS_x < 75) && (TS_y > 125) && (TS_y < 145)) {
+			Decr_Value(&RTC_hour, 0, 23);
+			Display_LCD_ActuPara(0);
+		}
+		// Change minute value
+		else if ((205 < TS_x) && (TS_x < 225) && (TS_y > 125) && (TS_y < 145)) {
 			Incr_Value(&RTC_minute, 0, 59);
 			Display_LCD_ActuPara(1);
-		} else if ((295 < TS_x) && (TS_x < 315) && (TS_y > 125)
+		} else if ((165 < TS_x) && (TS_x < 185) && (TS_y > 125)
 				&& (TS_y < 145)) {
+			Decr_Value(&RTC_minute, 0, 59);
+			Display_LCD_ActuPara(1);
+		}
+		// Change second value
+		else if ((315 < TS_x) && (TS_x < 335) && (TS_y > 125) && (TS_y < 145)) {
 			Incr_Value(&RTC_second, 0, 59);
 			Display_LCD_ActuPara(2);
-		} else if ((75 < TS_x) && (TS_x < 95) && (TS_y > 225) && (TS_y < 245)) {
+		} else if ((275 < TS_x) && (TS_x < 295) && (TS_y > 125)
+				&& (TS_y < 145)) {
+			Decr_Value(&RTC_second, 0, 59);
+			Display_LCD_ActuPara(2);
+		}
+		// Change day value
+		else if ((95 < TS_x) && (TS_x < 115) && (TS_y > 225) && (TS_y < 245)) {
 			Incr_Value(&RTC_day, 1, 31);
 			Display_LCD_ActuPara(3);
-		} else if ((185 < TS_x) && (TS_x < 205) && (TS_y > 225)
-				&& (TS_y < 245)) {
+		} else if ((55 < TS_x) && (TS_x < 75) && (TS_y > 225) && (TS_y < 245)) {
+			Decr_Value(&RTC_day, 1, 31);
+			Display_LCD_ActuPara(3);
+		}
+		// Change month value
+		else if ((205 < TS_x) && (TS_x < 225) && (TS_y > 225) && (TS_y < 245)) {
 			Incr_Value(&RTC_month, 1, 12);
 			Display_LCD_ActuPara(4);
-		} else if ((295 < TS_x) && (TS_x < 315) && (TS_y > 225)
+		} else if ((165 < TS_x) && (TS_x < 185) && (TS_y > 225)
 				&& (TS_y < 245)) {
+			Decr_Value(&RTC_month, 1, 12);
+			Display_LCD_ActuPara(4);
+		}
+		// Change year value
+		else if ((315 < TS_x) && (TS_x < 335) && (TS_y > 225) && (TS_y < 245)) {
 			Incr_Value(&RTC_year, 0, 99);
+			Display_LCD_ActuPara(5);
+		} else if ((275 < TS_x) && (TS_x < 295) && (TS_y > 225)
+				&& (TS_y < 245)) {
+			Decr_Value(&RTC_year, 0, 99);
 			Display_LCD_ActuPara(5);
 		}
 	} else { //TS for Measures Screens

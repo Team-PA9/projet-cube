@@ -53,7 +53,7 @@ void SDCARD_Init(void) {
 }
 
 void SDCARD_Actualization(void) {
-    printf("Saving measurements to SD card...\r\n");
+	printf("Saving measurements to SD card...\r\n");
 	Display_LCD_Saving();
 	// Interruption hts221
 	if (Flag_SaveHT == 1) {
@@ -98,7 +98,7 @@ void SDCARD_Actualization(void) {
 	}
 
 	BSP_LCD_DisplayStringAt(0, 250, (uint8_t*) "         ", LEFT_MODE);
-    printf("Measurements successfully saved to SD card.\r\n");
+	printf("Measurements successfully saved to SD card.\r\n");
 }
 
 void SDCARD_NewLog(FIL *fp, const char *filename) {
@@ -126,8 +126,8 @@ void SDCARD_AddLog_WD(FIL *fp, const char *filename, const char *sensor,
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
 		f_puts(",", fp);
-        char timeString[20];
-        RTC_Get_UTC_Timestamp(timeString);
+		char timeString[20];
+		RTC_Get_UTC_Timestamp(timeString);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
@@ -147,8 +147,8 @@ void SDCARD_AddLog_Rf(FIL *fp, const char *filename, const char *sensor,
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
 		f_puts(",", fp);
-        char timeString[20];
-        RTC_Get_UTC_Timestamp(timeString);
+		char timeString[20];
+		RTC_Get_UTC_Timestamp(timeString);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
@@ -167,9 +167,9 @@ void SDCARD_AddLog_HTPWS(FIL *fp, const char *filename, const char *sensor,
 	} else {
 		f_lseek(fp, f_size(fp));
 		f_puts(sensor, fp);
-        f_puts(",", fp);
-        char timeString[20];
-        RTC_Get_UTC_Timestamp(timeString);
+		f_puts(",", fp);
+		char timeString[20];
+		RTC_Get_UTC_Timestamp(timeString);
 		f_puts(timeString, fp);
 		for (int i = 0; i < index; i++) {
 			char valueString[20];
