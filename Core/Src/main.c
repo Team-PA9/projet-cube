@@ -150,7 +150,6 @@ int main(void) {
 
 	//SENSORS Initialization
 	printf("\n - Sensors \r\n");
-	HAL_TIM_Base_Start_IT(&htim6);
 	HAL_TIM_Base_Start_IT(&htim7);
 	HAL_TIM_Base_Start(&htim8);
 	SENSOR_lps22hh_Init();
@@ -159,6 +158,7 @@ int main(void) {
 
 	//SCREEN Initialization
 	printf("\n - Screen \r\n");
+	HAL_TIM_Base_Start_IT(&htim6);
 	BSP_LCD_Init();
 	Display_LCD_Init();
 	Display_LCD_Pages(0);
@@ -356,7 +356,7 @@ int main(void) {
 			SDCARD_Actualization();
 		}
 
-// --- STEP N°130 : Flag Inactivity ------------------------------------
+		// --- STEP N°130 : Flag Inactivity ------------------------------------
 		else if (SCREEN_InactivityCpt >= 31) {
 			if (SCREEN_State == 1) {
 				printf("Screen OFF \r\n");
